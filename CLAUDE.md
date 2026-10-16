@@ -145,6 +145,11 @@ missing archive).
 - **NuGet appends the recursive directory to a folder `PackagePath`.** The
   runtimes are packed with `PackagePath="runtimes"`; `runtimes/%(RecursiveDir)`
   doubles every path.
+- **`NuGet/login`'s `user` is the person, not the organisation.** It is
+  the nuget.org account that created the trusted-publishing policy
+  (`Wilielmus`), even though the policy and the packages belong to the
+  `ConnectingTheDots` organisation; naming the organisation fails the token
+  exchange. Set the first release's run straight.
 - **`printf`, not `yes`, into a pipe on CI.** GitHub's bash runs with
   `pipefail`, and `yes` ends by SIGPIPE.
 - **.NET in the browser cannot link the engine.** The `wasm-tools` workload
