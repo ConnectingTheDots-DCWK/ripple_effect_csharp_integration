@@ -1,0 +1,28 @@
+<!--
+  What every project here shares. The engine variant a build tests against
+  is `RippleVariant`, python unless told otherwise:
+
+    dotnet test -p:RippleVariant=no-python
+-->
+<Project>
+  <PropertyGroup>
+    <RippleRoot>$(MSBuildThisFileDirectory)</RippleRoot>
+    <RippleVariant Condition="'$(RippleVariant)' == ''">python</RippleVariant>
+    <!-- The binding's own version: MAJOR.MINOR is the engine contract it binds. -->
+    <RippleVersion>1.5.0</RippleVersion>
+
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+    <AnalysisLevel>latest-recommended</AnalysisLevel>
+    <Deterministic>true</Deterministic>
+
+    <Authors>ConnectingTheDots</Authors>
+    <Company>ConnectingTheDots</Company>
+    <Copyright>© 2026 William Karol Di Cioccio</Copyright>
+    <RepositoryUrl>https://github.com/ConnectingTheDots-DCWK/ripple_effect_csharp_integration</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageProjectUrl>https://ripplefx.app</PackageProjectUrl>
+  </PropertyGroup>
+</Project>

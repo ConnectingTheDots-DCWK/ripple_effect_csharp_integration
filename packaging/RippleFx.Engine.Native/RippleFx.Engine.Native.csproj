@@ -1,0 +1,44 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!--
+    The engine itself, as NuGet ships native code: runtimes/<rid>/native/ for
+    every target the release has, staged by tool/Engine from the pinned,
+    digest-checked archives. One project, two packages:
+
+      dotnet pack -p:RippleVariant=python      RippleFx.Engine.Native
+      dotnet pack -p:RippleVariant=no-python   RippleFx.Engine.Native.NoPython
+
+    Nothing is compiled; IncludeBuildOutput is off and the assembly is a stub
+    NuGet never sees. A consumer references exactly one of the two beside
+    RippleFx.Engine, and buildTransitive/ says so when both are referenced.
+  -->
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <Nullable>disable</Nullable>
+    <IncludeBuildOutput>false</IncludeBuildOutput>
+    <NoWarn>$(NoWarn);NU5128</NoWarn>
+    <SuppressDependenciesWhenPacking>true</SuppressDependenciesWhenPacking>
+    <RippleStage Condition="'$(RippleStage)' == ''">$(RippleRoot)out/stage/$(RippleVariant)/</RippleStage>
+
+    <PackageId Condition="'$(RippleVariant)' == 'python'">RippleFx.Engine.Native</PackageId>
+    <PackageId Condition="'$(RippleVariant)' == 'no-python'">RippleFx.Engine.Native.NoPython</PackageId>
+    <Version>$(RippleVersion)</Version>
+    <Description Condition="'$(RippleVariant)' == 'python'">The Ripple Effect engine for RippleFx.Engine, with its Python interpreter: Windows, macOS and Linux (x64, arm64), Android (arm64, x86_64), iOS (device and simulator, static).</Description>
+    <Description Condition="'$(RippleVariant)' == 'no-python'">The Ripple Effect engine for RippleFx.Engine, without Python — smaller, and plays every campaign exported with "Needs no Python": Windows, macOS and Linux (x64, arm64), Android (arm64, x86_64), iOS (device and simulator, static).</Description>
+    <PackageTags>ripple-effect;interactive-fiction;narrative;native</PackageTags>
+    <PackageLicenseFile>LICENSE-ENGINE.txt</PackageLicenseFile>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+  </PropertyGroup>
+
+  <Target Name="RippleCheckStage" BeforeTargets="GenerateNuspec">
+    <Error Condition="'$(PackageId)' == ''" Text="RippleVariant is python or no-python, not '$(RippleVariant)'." />
+    <Error Condition="!Exists('$(RippleStage)runtimes')" Text="Nothing staged in $(RippleStage): run tool/Engine stage --variant $(RippleVariant) --out $(RippleStage) first." />
+  </Target>
+
+  <ItemGroup>
+    <None Include="$(RippleStage)runtimes/**" Pack="true" PackagePath="runtimes" Visible="false" />
+    <None Include="$(RippleStage)ENGINE-NOTICE.txt" Pack="true" PackagePath="\" Visible="false" />
+    <None Include="$(MSBuildThisFileDirectory)../LICENSE-ENGINE.txt" Pack="true" PackagePath="\" />
+    <None Include="$(MSBuildThisFileDirectory)../NATIVE-README.md" Pack="true" PackagePath="README.md" />
+    <None Include="buildTransitive/RippleFx.Engine.Native.targets" Pack="true" PackagePath="buildTransitive/$(PackageId).targets" />
+  </ItemGroup>
+</Project>

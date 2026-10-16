@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- A campaign in a terminal; Program.cs says how to run it. -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <RollForward>Major</RollForward>
+    <LangVersion>9.0</LangVersion>
+    <IsPackable>false</IsPackable>
+    <RippleNeedsEngine>true</RippleNeedsEngine>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="$(RippleRoot)src/RippleFx.Engine/RippleFx.Engine.csproj" />
+  </ItemGroup>
+</Project>

@@ -1,0 +1,33 @@
+<!--
+  The engine, for a project of this repository that runs it — the tests, the
+  example. Imported by Directory.Build.targets when a project sets
+  RippleNeedsEngine; nothing here is packed.
+
+  Before the build, tool/Engine fetches the pinned release for this machine's
+  runtime and $(RippleVariant), verified by digest, or builds it from
+  RIPPLE_ENGINE_TREE; the library is then copied beside the program.
+-->
+<Project>
+  <PropertyGroup>
+    <!-- This machine's portable RID; a distro's SDK names its own (ubuntu.24.04-x64). -->
+    <RippleArch>$([System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture.ToString().ToLowerInvariant())</RippleArch>
+    <RippleOs Condition="$([MSBuild]::IsOSPlatform('Windows'))">win</RippleOs>
+    <RippleOs Condition="$([MSBuild]::IsOSPlatform('OSX'))">osx</RippleOs>
+    <RippleOs Condition="'$(RippleOs)' == ''">linux</RippleOs>
+    <RippleRid Condition="'$(RippleRid)' == ''">$(RippleOs)-$(RippleArch)</RippleRid>
+    <RippleEngineDir>$(RippleRoot)out/engine/$(RippleVariant)/$(RippleRid)/</RippleEngineDir>
+    <RippleLibrary Condition="$(RippleRid.StartsWith('win-'))">ripple_effect_engine.dll</RippleLibrary>
+    <RippleLibrary Condition="$(RippleRid.StartsWith('osx-'))">libripple_effect_engine.dylib</RippleLibrary>
+    <RippleLibrary Condition="'$(RippleLibrary)' == ''">libripple_effect_engine.so</RippleLibrary>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Always: the two variants' libraries carry their archives' mtimes, so a
+         newer-wins copy can keep the other variant's after a switch. -->
+    <None Include="$(RippleEngineDir)lib/$(RippleLibrary)" Link="$(RippleLibrary)" CopyToOutputDirectory="Always" Visible="false" />
+  </ItemGroup>
+
+  <Target Name="RippleFetchEngine" BeforeTargets="PrepareForBuild">
+    <Exec Command="dotnet run --project &quot;$(RippleRoot)tool/Engine/Engine.csproj&quot; -c Release -- fetch --rid $(RippleRid) --variant $(RippleVariant) --conformance" />
+  </Target>
+</Project>

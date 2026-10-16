@@ -1,0 +1,660 @@
+{
+  "RippleAmbience": {
+    "size": 120,
+    "fields": {
+      "soundscape": 0,
+      "board": 96,
+      "node": 104
+    }
+  },
+  "RippleAudioCommand": {
+    "size": 64,
+    "fields": {
+      "kind": 0,
+      "soundscape": 8,
+      "fade_ms": 16,
+      "media": 24,
+      "volume": 32,
+      "speed": 40,
+      "node": 48
+    }
+  },
+  "RippleBoard": {
+    "size": 72,
+    "fields": {
+      "id": 0,
+      "name": 16,
+      "start": 32,
+      "prime": 40,
+      "prime_count": 48,
+      "nodes": 56,
+      "node_count": 64
+    }
+  },
+  "RippleBundleProblem": {
+    "size": 32,
+    "fields": {
+      "message": 0,
+      "location": 16
+    }
+  },
+  "RippleBundleProblems": {
+    "size": 16,
+    "fields": {
+      "items": 0,
+      "count": 8
+    }
+  },
+  "RippleBytes": {
+    "size": 16,
+    "fields": {
+      "ptr": 0,
+      "len": 8
+    }
+  },
+  "RippleCallbackEvent": {
+    "size": 88,
+    "fields": {
+      "callback": 0,
+      "event": 16,
+      "board": 20,
+      "node": 32,
+      "name": 48,
+      "from": 64,
+      "to": 72,
+      "index": 80
+    }
+  },
+  "RippleChanged": {
+    "size": 56,
+    "fields": {
+      "has_entities": 0,
+      "entities": 8,
+      "entity_count": 16,
+      "memory": 24,
+      "has_cvars": 32,
+      "cvars": 40,
+      "cvar_count": 48
+    }
+  },
+  "RippleChoice": {
+    "size": 40,
+    "fields": {
+      "port": 0,
+      "text": 16,
+      "available": 32
+    }
+  },
+  "RippleConsoleResult": {
+    "size": 56,
+    "fields": {
+      "result": 0,
+      "effects": 40,
+      "effect_count": 48
+    }
+  },
+  "RippleCvar": {
+    "size": 48,
+    "fields": {
+      "name": 0,
+      "type_name": 16,
+      "default_value": 32
+    }
+  },
+  "RippleCvarChange": {
+    "size": 40,
+    "fields": {
+      "outcome": 0,
+      "refusal": 8,
+      "effects": 24,
+      "effect_count": 32
+    }
+  },
+  "RippleCvarList": {
+    "size": 16,
+    "fields": {
+      "items": 0,
+      "count": 8
+    }
+  },
+  "RippleCvarSnapshot": {
+    "size": 64,
+    "fields": {
+      "name": 0,
+      "type_name": 16,
+      "default_value": 32,
+      "value": 48
+    }
+  },
+  "RippleEdge": {
+    "size": 16,
+    "fields": {
+      "node": 0,
+      "port": 8
+    }
+  },
+  "RippleEffect": {
+    "size": 16,
+    "fields": {
+      "kind": 0,
+      "data": 8
+    }
+  },
+  "RippleEffectData": {
+    "size": 8,
+    "fields": {
+      "trace": 0,
+      "callback": 0,
+      "jumped": 0,
+      "ambience": 0,
+      "audio": 0,
+      "changed": 0,
+      "show": 0,
+      "ask": 0,
+      "hold_ms": 0,
+      "ended": 0,
+      "failed": 0
+    }
+  },
+  "RippleEffects": {
+    "size": 16,
+    "fields": {
+      "items": 0,
+      "count": 8
+    }
+  },
+  "RippleEnded": {
+    "size": 24,
+    "fields": {
+      "title": 0,
+      "ran_out": 16
+    }
+  },
+  "RippleEntity": {
+    "size": 64,
+    "fields": {
+      "key": 0,
+      "component": 16,
+      "label": 32,
+      "values": 48
+    }
+  },
+  "RippleEntityList": {
+    "size": 16,
+    "fields": {
+      "items": 0,
+      "count": 8
+    }
+  },
+  "RippleEntityRemoval": {
+    "size": 24,
+    "fields": {
+      "removed": 0,
+      "effects": 8,
+      "effect_count": 16
+    }
+  },
+  "RippleEntries": {
+    "size": 16,
+    "fields": {
+      "ptr": 0,
+      "count": 8
+    }
+  },
+  "RippleEntry": {
+    "size": 48,
+    "fields": {
+      "id": 0,
+      "name": 16,
+      "path": 32
+    }
+  },
+  "RippleError": {
+    "size": 120,
+    "fields": {
+      "code": 0,
+      "message": 8,
+      "location": 24,
+      "found": 40,
+      "supported": 48,
+      "oldest": 56,
+      "asked": 72,
+      "answered": 76,
+      "offered": 80,
+      "chosen": 84,
+      "subject": 88,
+      "node": 104
+    }
+  },
+  "RippleFailed": {
+    "size": 32,
+    "fields": {
+      "message": 0,
+      "node": 16
+    }
+  },
+  "RippleField": {
+    "size": 32,
+    "fields": {
+      "key": 0,
+      "value": 16
+    }
+  },
+  "RippleFields": {
+    "size": 16,
+    "fields": {
+      "fields": 0,
+      "count": 8
+    }
+  },
+  "RippleFile": {
+    "size": 32,
+    "fields": {
+      "path": 0,
+      "bytes": 16,
+      "len": 24
+    }
+  },
+  "RippleGenerator": {
+    "size": 8,
+    "fields": {
+      "lo": 0,
+      "hi": 4
+    }
+  },
+  "RippleGuardReport": {
+    "size": 24,
+    "fields": {
+      "abandoned": 0,
+      "abandoned_count": 8,
+      "refused": 16,
+      "exhausted": 20
+    }
+  },
+  "RippleIndices": {
+    "size": 16,
+    "fields": {
+      "ptr": 0,
+      "count": 8
+    }
+  },
+  "RippleJumped": {
+    "size": 24,
+    "fields": {
+      "board": 0,
+      "node": 8
+    }
+  },
+  "RippleLocaleText": {
+    "size": 32,
+    "fields": {
+      "locale": 0,
+      "text": 16
+    }
+  },
+  "RippleMachineState": {
+    "size": 32,
+    "fields": {
+      "machine": 0,
+      "state": 16
+    }
+  },
+  "RippleManifest": {
+    "size": 280,
+    "fields": {
+      "format": 0,
+      "generator": 8,
+      "text_format": 24,
+      "project": 40,
+      "entries": 120,
+      "entry_count": 128,
+      "boards": 136,
+      "board_count": 144,
+      "passages": 152,
+      "passage_count": 160,
+      "components": 168,
+      "component_count": 176,
+      "scripts": 184,
+      "script_count": 192,
+      "media": 200,
+      "media_count": 208,
+      "machines": 216,
+      "machine_count": 224,
+      "soundscapes": 232,
+      "soundscape_count": 240,
+      "cvars": 248,
+      "cvar_count": 256,
+      "needs": 264,
+      "need_count": 272
+    }
+  },
+  "RippleMediaLink": {
+    "size": 24,
+    "fields": {
+      "link": 0,
+      "media": 16
+    }
+  },
+  "RippleMemory": {
+    "size": 32,
+    "fields": {
+      "nodes": 0,
+      "machines": 16,
+      "machine_count": 24
+    }
+  },
+  "RippleNode": {
+    "size": 112,
+    "fields": {
+      "id": 0,
+      "type_name": 16,
+      "title": 32,
+      "inputs": 48,
+      "input_count": 56,
+      "outputs": 64,
+      "output_count": 72,
+      "data": 80,
+      "metadata": 96
+    }
+  },
+  "RippleOptionalI64": {
+    "size": 16,
+    "fields": {
+      "present": 0,
+      "value": 8
+    }
+  },
+  "RippleOptionalU32": {
+    "size": 8,
+    "fields": {
+      "present": 0,
+      "value": 4
+    }
+  },
+  "RippleOptionalU64": {
+    "size": 16,
+    "fields": {
+      "present": 0,
+      "value": 8
+    }
+  },
+  "RipplePassage": {
+    "size": 152,
+    "fields": {
+      "node": 0,
+      "title": 16,
+      "text": 32,
+      "choices": 48,
+      "choice_count": 56,
+      "has_sources": 64,
+      "sources": 72,
+      "source_count": 80,
+      "snippets": 88,
+      "snippet_count": 96,
+      "media": 104,
+      "media_count": 112,
+      "untranslated": 120,
+      "soundscape": 136,
+      "silence": 144
+    }
+  },
+  "RipplePaused": {
+    "size": 32,
+    "fields": {
+      "save": 0,
+      "effects": 16,
+      "effect_count": 24
+    }
+  },
+  "RipplePort": {
+    "size": 40,
+    "fields": {
+      "id": 0,
+      "kind": 16,
+      "edges": 24,
+      "edge_count": 32
+    }
+  },
+  "RippleProject": {
+    "size": 80,
+    "fields": {
+      "title": 0,
+      "description": 16,
+      "default_locale": 32,
+      "locales": 48,
+      "locale_count": 56,
+      "cover": 64
+    }
+  },
+  "RipplePrompt": {
+    "size": 48,
+    "fields": {
+      "node": 0,
+      "title": 16,
+      "fields": 32,
+      "field_count": 40
+    }
+  },
+  "RipplePromptField": {
+    "size": 48,
+    "fields": {
+      "name": 0,
+      "type_name": 16,
+      "default_value": 32
+    }
+  },
+  "RipplePythonFailure": {
+    "size": 64,
+    "fields": {
+      "kind": 0,
+      "exception": 8,
+      "message": 24,
+      "line": 40,
+      "traceback": 48
+    }
+  },
+  "RipplePythonResult": {
+    "size": 40,
+    "fields": {
+      "value": 0,
+      "output": 16,
+      "error": 32
+    }
+  },
+  "RippleRunDiagnostic": {
+    "size": 64,
+    "fields": {
+      "issue": 0,
+      "message": 8,
+      "node": 24,
+      "port": 40,
+      "wires": 56
+    }
+  },
+  "RippleRunEvent": {
+    "size": 232,
+    "fields": {
+      "kind": 0,
+      "at": 4,
+      "node": 16,
+      "step": 32,
+      "entry": 40,
+      "primed": 56,
+      "primed_count": 64,
+      "entered_via": 72,
+      "pulled": 88,
+      "inputs": 96,
+      "input_count": 104,
+      "outcome": 112,
+      "outputs": 120,
+      "output_count": 128,
+      "flowed": 136,
+      "flowed_count": 144,
+      "error": 152,
+      "diagnostic": 168,
+      "level": 176,
+      "message": 184,
+      "data": 200,
+      "steps": 208,
+      "cancelled": 212,
+      "failed_node": 216
+    }
+  },
+  "RippleRunPlace": {
+    "size": 12,
+    "fields": {
+      "run": 0,
+      "board": 4,
+      "sequence": 8
+    }
+  },
+  "RippleScriptLimits": {
+    "size": 24,
+    "fields": {
+      "deadline_ms": 0,
+      "memory_bytes": 8,
+      "recursion_depth": 16
+    }
+  },
+  "RippleSessionConfig": {
+    "size": 112,
+    "fields": {
+      "board": 0,
+      "entry_node": 8,
+      "locale": 24,
+      "seed": 40,
+      "digest": 48,
+      "options": 64
+    }
+  },
+  "RippleSessionOptions": {
+    "size": 48,
+    "fields": {
+      "step_budget": 0,
+      "silent_jump_limit": 4,
+      "loop_limit": 8,
+      "script_limits": 16,
+      "untranslated": 40,
+      "trace": 44,
+      "trace_payloads": 45
+    }
+  },
+  "RippleSnippet": {
+    "size": 24,
+    "fields": {
+      "code": 0,
+      "is_inline": 16
+    }
+  },
+  "RippleSoundscape": {
+    "size": 96,
+    "fields": {
+      "id": 0,
+      "name": 16,
+      "length": 32,
+      "looping": 40,
+      "fade_in": 48,
+      "fade_out": 56,
+      "volume": 64,
+      "tied": 72,
+      "tracks": 80,
+      "track_count": 88
+    }
+  },
+  "RippleStr": {
+    "size": 16,
+    "fields": {
+      "ptr": 0,
+      "len": 8
+    }
+  },
+  "RippleStrList": {
+    "size": 16,
+    "fields": {
+      "items": 0,
+      "count": 8
+    }
+  },
+  "RippleTraceValue": {
+    "size": 88,
+    "fields": {
+      "from_node": 0,
+      "from_port": 16,
+      "to_node": 32,
+      "to_port": 48,
+      "payload": 64,
+      "value": 72
+    }
+  },
+  "RippleTrack": {
+    "size": 96,
+    "fields": {
+      "media": 0,
+      "lane": 8,
+      "start": 16,
+      "clip_start": 24,
+      "clip_end": 32,
+      "volume": 48,
+      "speed": 56,
+      "fade_in": 64,
+      "fade_out": 72,
+      "mode": 80,
+      "interval": 88
+    }
+  },
+  "RippleValue": {
+    "size": 16,
+    "fields": {
+      "nodes": 0,
+      "count": 8
+    }
+  },
+  "RippleValueData": {
+    "size": 16,
+    "fields": {
+      "boolean": 0,
+      "integer": 0,
+      "real": 0,
+      "text": 0,
+      "items": 0,
+      "entries": 0
+    }
+  },
+  "RippleValueEntry": {
+    "size": 24,
+    "fields": {
+      "key": 0,
+      "node": 16
+    }
+  },
+  "RippleValueNode": {
+    "size": 24,
+    "fields": {
+      "kind": 0,
+      "data": 8
+    }
+  },
+  "RippleVoiceCommand": {
+    "size": 88,
+    "fields": {
+      "kind": 0,
+      "voice": 8,
+      "media": 16,
+      "from_ms": 24,
+      "to_ms": 32,
+      "gain": 48,
+      "rate": 56,
+      "looping": 64,
+      "loop_from_ms": 72,
+      "role": 80,
+      "track": 84
+    }
+  },
+  "RippleVoiceCommands": {
+    "size": 16,
+    "fields": {
+      "items": 0,
+      "count": 8
+    }
+  }
+}

@@ -1,0 +1,12 @@
+The Ripple Effect engine — the ripple_effect_engine library in this package —
+is © 2026 ConnectingTheDots, all rights reserved, and licensed under the
+Ripple Effect Runtime Licence:
+
+  https://ripplefx.app/go/runtime-licence
+
+That licence lets you redistribute it, unmodified in function, as part of
+your own software, free of charge. Its notice — ENGINE-NOTICE.txt, at the
+root of this package — must be reproduced wherever your product lists the
+third-party software it uses.
+
+The C# bindings that load it (the RippleFx.Engine package) are MIT.
