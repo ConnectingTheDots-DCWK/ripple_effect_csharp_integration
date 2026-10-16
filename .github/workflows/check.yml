@@ -6,7 +6,9 @@
 # a fixture, into an Android app whose APK must carry the engine's Android
 # build for both ABIs, and into a .NET for iOS app that links the engine's
 # static library for the device and the simulator and plays a fixture on a
-# booted simulator. The repository is public, so these are GitHub's own runners.
+# booted simulator — when a hosted runner has the Xcode the .NET iOS workload
+# needs, skipping with a notice until one does. The repository is public, so
+# these are GitHub's own runners.
 #
 # While no release is pinned (every digest null), there is no engine CI can
 # fetch — the engine's source is private — so everything past the formatting
@@ -159,7 +161,23 @@ jobs:
         variant: [python, no-python]
     steps:
       - uses: actions/checkout@v4
+      # .NET for iOS needs the Xcode its workload was built against, and a
+      # hosted runner is often a release behind. When it is, this leg skips
+      # with a notice rather than fails — the same shape as the pin job when no
+      # release is pinned — and runs the moment a runner ships the Xcode. The
+      # engine wiring is proved locally by scripts/check-ios.sh meanwhile.
+      - id: xcode
+        name: Xcode is new enough for the iOS workload
+        run: |
+          major="$(xcodebuild -version | awk 'NR==1 {print $2}' | cut -d. -f1)"
+          if [ "${major:-0}" -ge 27 ]; then
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::Xcode $major on this runner; the .NET 10 iOS workload needs 27. Skipping the iOS build until a hosted runner ships it; scripts/check-ios.sh covers it locally."
+          fi
       - uses: actions/setup-dotnet@v4
+        if: steps.xcode.outputs.ready == 'true'
         with:
           dotnet-version: |
             8.0.x
@@ -169,16 +187,20 @@ jobs:
       # plays a fixture on a booted simulator. The AOT builds are slow, hence the
       # generous timeout and the free arm64 runner rather than Blacksmith.
       - name: The iOS workload
+        if: steps.xcode.outputs.ready == 'true'
         run: dotnet workload install ios
       - uses: actions/cache@v4
+        if: steps.xcode.outputs.ready == 'true'
         with:
           path: out/engine/downloads
           key: engine-ios-${{ matrix.variant }}-${{ hashFiles('engine.json') }}
       - name: Stage and pack
+        if: steps.xcode.outputs.ready == 'true'
         run: |
           dotnet run --project tool/Engine -c Release -- stage --variant "${{ matrix.variant }}" --out "out/stage/${{ matrix.variant }}"
           dotnet pack packaging/RippleFx.Engine.Native -c Release -p:RippleVariant="${{ matrix.variant }}" -o out/packages
           dotnet pack src/RippleFx.Engine -c Release -o out/packages
           dotnet run --project tool/Engine -c Release -- fetch --rid osx-arm64 --conformance
       - name: An iOS app, device and simulator, from a local feed
+        if: steps.xcode.outputs.ready == 'true'
         run: bash scripts/check-ios.sh out/packages out/engine/conformance/fixtures/the-choir/bundle "${{ matrix.variant }}"

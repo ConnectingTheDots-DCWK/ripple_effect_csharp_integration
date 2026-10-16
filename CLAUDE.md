@@ -176,6 +176,17 @@ missing archive).
 - **A device build is unsigned on a free runner.** `-p:EnableCodeSigning=false`
   gets the link — which is what `check-ios.sh` proves on the device, running
   nothing, as `check-android.sh` runs nothing on a phone.
+- **The .NET iOS workload needs its matching Xcode, and a hosted runner lags.**
+  `dotnet workload install ios` on a given SDK band pulls the workload built for
+  the current Xcode (27.0.10722 needs Xcode 27), and GitHub's macOS images are
+  often a release behind (26.6 at most, late 2026), so the build fails outright
+  with *requires Xcode 27.0, current is 26.6*. The `ios` job therefore gates on
+  the runner's Xcode major and skips with a notice when it is too old — it is
+  not red, and it runs for real the moment a runner ships the Xcode. Locally
+  the workload and Xcode already agree, so `check-ios.sh` is the real check
+  until then. Do not pin the workload down to the runner's Xcode to force it
+  green: that diverges what CI builds from what a consumer on current tools
+  gets.
 
 ## Releasing
 
