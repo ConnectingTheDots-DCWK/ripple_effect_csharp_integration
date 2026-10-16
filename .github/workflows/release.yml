@@ -1,0 +1,161 @@
+# Cuts a release of the bindings: RippleFx.Engine, RippleFx.Engine.Native and
+# RippleFx.Engine.Native.NoPython on nuget.org, an annotated tag `v<version>`,
+# and a GitHub release whose notes are the version's CHANGELOG section, with
+# the three packages and their SHA256SUMS.
+#
+# Dispatched by hand on main. It refuses a version already tagged, a version
+# with no CHANGELOG section, a pin that is not a signed release, and packages
+# that do not pass the suite on Linux, macOS and Windows, a consumer's
+# install, and an Android app's.
+#
+# Publishing is nuget.org's Trusted Publishing: no key is stored here. The
+# ConnectingTheDots organisation on nuget.org holds a trusted-publishing
+# policy for this repository and this workflow file, and `NuGet/login`
+# exchanges the run's OIDC token for a key that lives an hour.
+
+name: Release
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+env:
+  DOTNET_CLI_TELEMETRY_OPTOUT: "1"
+  DOTNET_NOLOGO: "1"
+
+jobs:
+  preflight:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: On main
+        run: |
+          [ "$GITHUB_REF" = refs/heads/main ] || { echo "::error::a release is cut from main, not $GITHUB_REF"; exit 1; }
+      - id: version
+        name: The version, untagged, with notes
+        run: |
+          version="$(sed -n 's:.*<RippleVersion>\(.*\)</RippleVersion>.*:\1:p' Directory.Build.props)"
+          [ -n "$version" ] || { echo "::error::no RippleVersion in Directory.Build.props"; exit 1; }
+          if git rev-parse "v$version" >/dev/null 2>&1; then
+            echo "::error::v$version is already tagged; bump RippleVersion first"; exit 1
+          fi
+          awk -v v="$version" '$0 == "## " v {on=1; next} /^## / {on=0} on' CHANGELOG.md > notes.md
+          [ -s notes.md ] || { echo "::error::CHANGELOG.md has no ## $version section"; exit 1; }
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+      - name: The pin is a signed release
+        run: bash scripts/pin-engine.sh --verify
+      - uses: actions/upload-artifact@v4
+        with:
+          name: notes
+          path: notes.md
+
+  test:
+    needs: preflight
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        variant: [python, no-python]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: |
+            8.0.x
+            10.0.x
+      - name: Test
+        run: dotnet test tests/RippleFx.Engine.Tests -c Release -p:RippleVariant=${{ matrix.variant }}
+      - name: Refuses an unverified engine
+        shell: bash
+        run: |
+          if find out/engine -name UNVERIFIED | grep -q .; then
+            echo "::error::the engine came from a development tree"; exit 1
+          fi
+
+  pack:
+    needs: preflight
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: |
+            8.0.x
+            10.0.x
+      - name: Stage and pack
+        run: |
+          for variant in python no-python; do
+            dotnet run --project tool/Engine -c Release -- stage --variant "$variant" --out "out/stage/$variant"
+            dotnet pack packaging/RippleFx.Engine.Native -c Release -p:RippleVariant="$variant" -o out/packages
+          done
+          dotnet pack src/RippleFx.Engine -c Release -o out/packages
+          dotnet run --project tool/Engine -c Release -- fetch --rid linux-x64 --conformance
+      - name: A console, from a local feed
+        run: bash scripts/check-packages.sh out/packages out/engine/conformance/fixtures/the-choir/bundle
+      - name: An Android app, from a local feed
+        run: |
+          dotnet workload install android
+          bash scripts/check-android.sh out/packages python
+          bash scripts/check-android.sh out/packages no-python
+      - uses: actions/upload-artifact@v4
+        with:
+          name: packages
+          path: out/packages/
+
+  release:
+    needs: [preflight, test, pack]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+      - uses: actions/download-artifact@v4
+        with:
+          name: notes
+      - uses: actions/download-artifact@v4
+        with:
+          name: packages
+          path: packages
+      - name: nuget.org, by trusted publishing
+        id: login
+        uses: NuGet/login@v1
+        with:
+          user: ConnectingTheDots
+      # The engines first: a consumer who sees RippleFx.Engine can install an engine beside it.
+      - name: Push
+        env:
+          NUGET_API_KEY: ${{ steps.login.outputs.NUGET_API_KEY }}
+          VERSION: ${{ needs.preflight.outputs.version }}
+        run: |
+          for package in RippleFx.Engine.Native RippleFx.Engine.Native.NoPython RippleFx.Engine; do
+            dotnet nuget push "packages/$package.$VERSION.nupkg" --api-key "$NUGET_API_KEY" \
+              --source https://api.nuget.org/v3/index.json --skip-duplicate
+          done
+      - name: Tag and release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ needs.preflight.outputs.version }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag -a "v$VERSION" -m "ripple_effect_csharp_integration $VERSION"
+          git push origin "v$VERSION"
+          (cd packages && sha256sum ./*.nupkg ./*.snupkg > ../SHA256SUMS)
+          flags=()
+          case "$VERSION" in *-*) flags+=(--prerelease) ;; esac
+          gh release create "v$VERSION" "${flags[@]}" --title "$VERSION" --notes-file notes.md \
+            packages/*.nupkg packages/*.snupkg SHA256SUMS

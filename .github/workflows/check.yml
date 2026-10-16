@@ -1,0 +1,148 @@
+# What every push and pull request is held to: the formatting and the
+# analyzers, then — once engine.json pins a release — the pin's signature,
+# the generated interop against the pinned header, the whole suite on Linux,
+# macOS and Windows on x64 and arm64 in both variants, and the packages as a
+# consumer meets them: installed from a local feed into a console that plays
+# a fixture, and into an Android app whose APK must carry the engine's
+# Android build for both ABIs. The repository is public, so these are
+# GitHub's own runners.
+#
+# While no release is pinned (every digest null), there is no engine CI can
+# fetch — the engine's source is private — so everything past the formatting
+# is skipped with a notice. Locally, RIPPLE_ENGINE_TREE builds one.
+
+name: Check
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: check-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  DOTNET_CLI_TELEMETRY_OPTOUT: "1"
+  DOTNET_NOLOGO: "1"
+
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: |
+            8.0.x
+            10.0.x
+      # Whitespace and the style the analyzers enforce, checked, never applied.
+      # The test project's engine is fetched only on build, so none is needed.
+      - name: dotnet format
+        run: dotnet format RippleFx.sln --verify-no-changes --exclude src/RippleFx.Engine/Interop/
+
+  pin:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    outputs:
+      pinned: ${{ steps.pin.outputs.pinned }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: pin
+        name: Is a release pinned?
+        run: |
+          if jq -e '.keyId != null and ([.archives[] | .. | objects | select(has("sha256")) | .sha256] | all(. != null))' engine.json > /dev/null; then
+            echo "pinned=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "pinned=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::engine.json pins no release yet; the build and the tests are skipped."
+          fi
+      - name: The pin is a signed release
+        if: steps.pin.outputs.pinned == 'true'
+        run: bash scripts/pin-engine.sh --verify
+      - uses: actions/setup-dotnet@v4
+        if: steps.pin.outputs.pinned == 'true'
+        with:
+          dotnet-version: |
+            8.0.x
+            10.0.x
+      # The P/Invoke and the layout record, regenerated from the pinned
+      # release's header, must be what is committed.
+      - name: The interop is the header's
+        if: steps.pin.outputs.pinned == 'true'
+        run: |
+          bash scripts/generate.sh
+          git diff --exit-code -- src/RippleFx.Engine/Interop tests/RippleFx.Engine.Tests/layout.json \
+            || { echo "::error::Native.g.cs or layout.json is not what scripts/generate.sh makes of the pinned header"; exit 1; }
+
+  test:
+    needs: pin
+    if: needs.pin.outputs.pinned == 'true'
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, ubuntu-24.04-arm, macos-latest, windows-latest, windows-11-arm]
+        variant: [python, no-python]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: |
+            8.0.x
+            10.0.x
+      - uses: actions/cache@v4
+        with:
+          path: out/engine/downloads
+          key: engine-${{ runner.os }}-${{ runner.arch }}-${{ matrix.variant }}-${{ hashFiles('engine.json') }}
+      - name: Build both frameworks
+        run: dotnet build src/RippleFx.Engine -c Release
+      - name: Test
+        run: dotnet test tests/RippleFx.Engine.Tests -c Release -p:RippleVariant=${{ matrix.variant }}
+      - name: The example plays a fixture
+        shell: bash
+        run: |
+          printf '1\n%.0s' $(seq 50) | dotnet run --project examples/ConsolePlayer -c Release -p:RippleVariant=${{ matrix.variant }} \
+            -- out/engine/conformance/fixtures/the-choir/bundle | tee played.txt
+          grep -q "The end" played.txt
+
+  packages:
+    needs: pin
+    if: needs.pin.outputs.pinned == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: |
+            8.0.x
+            10.0.x
+      - uses: actions/cache@v4
+        with:
+          path: out/engine/downloads
+          key: engine-stage-${{ hashFiles('engine.json') }}
+      - name: Stage and pack
+        run: |
+          for variant in python no-python; do
+            dotnet run --project tool/Engine -c Release -- stage --variant "$variant" --out "out/stage/$variant"
+            dotnet pack packaging/RippleFx.Engine.Native -c Release -p:RippleVariant="$variant" -o out/packages
+          done
+          dotnet pack src/RippleFx.Engine -c Release -o out/packages
+          dotnet run --project tool/Engine -c Release -- fetch --rid linux-x64 --conformance
+      - name: A console, from a local feed
+        run: bash scripts/check-packages.sh out/packages out/engine/conformance/fixtures/the-choir/bundle
+      # The runner image has an Android SDK and a JDK; the workload is .NET's.
+      - name: An Android app, from a local feed
+        run: |
+          dotnet workload install android
+          bash scripts/check-android.sh out/packages python
+          bash scripts/check-android.sh out/packages no-python
+      - uses: actions/upload-artifact@v4
+        with:
+          name: packages
+          path: out/packages/

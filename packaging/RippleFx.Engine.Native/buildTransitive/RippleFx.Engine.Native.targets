@@ -1,0 +1,16 @@
+<!--
+  Packed as buildTransitive/<PackageId>.targets in both native packages, so a
+  project that references both imports it twice: once marks each. The two
+  ship libraries of the same name, and whichever won the copy would decide
+  silently whether the story runs Python.
+-->
+<Project>
+  <PropertyGroup>
+    <_RippleFxNativeImports>$(_RippleFxNativeImports);$(MSBuildThisFileName);</_RippleFxNativeImports>
+  </PropertyGroup>
+
+  <Target Name="_RippleFxOneEngine" BeforeTargets="ResolveAssemblyReferences"
+          Condition="$(_RippleFxNativeImports.Contains(';RippleFx.Engine.Native;')) And $(_RippleFxNativeImports.Contains(';RippleFx.Engine.Native.NoPython;'))">
+    <Error Text="RippleFx.Engine.Native and RippleFx.Engine.Native.NoPython are both referenced. Reference one: the engine with Python, or the one without." />
+  </Target>
+</Project>

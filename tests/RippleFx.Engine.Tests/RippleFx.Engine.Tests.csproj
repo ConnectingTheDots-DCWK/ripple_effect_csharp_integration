@@ -1,0 +1,35 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!--
+    Every conformance fixture of the pinned release, played through Session
+    and Player; the soundscape driver against a recording speaker; values;
+    and .NET's layout of every engine struct held to clang's.
+
+    The engine comes from build/Engine.targets, before the build.
+  -->
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <RollForward>Major</RollForward>
+    <LangVersion>9.0</LangVersion>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+    <!-- Test names are sentences, and a test class needs no XML docs. -->
+    <NoWarn>$(NoWarn);CA1707;CA1515</NoWarn>
+    <RippleNeedsEngine>true</RippleNeedsEngine>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
+    <PackageReference Include="NUnit" Version="4.3.2" />
+    <PackageReference Include="NUnit3TestAdapter" Version="5.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="$(RippleRoot)src/RippleFx.Engine/RippleFx.Engine.csproj" />
+    <None Include="layout.json" CopyToOutputDirectory="PreserveNewest" />
+    <AssemblyAttribute Include="System.Reflection.AssemblyMetadataAttribute">
+      <_Parameter1>RippleRoot</_Parameter1>
+      <_Parameter2>$(RippleRoot)</_Parameter2>
+    </AssemblyAttribute>
+  </ItemGroup>
+</Project>
