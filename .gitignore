@@ -1,0 +1,10 @@
+/out/
+bin/
+obj/
+*.user
+.vs/
+.vscode/*
+!.vscode/extensions.json
+.idea/
+*.swp
+TestResults/
