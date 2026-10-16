@@ -3,9 +3,10 @@
 # the generated interop against the pinned header, the whole suite on Linux,
 # macOS and Windows on x64 and arm64 in both variants, and the packages as a
 # consumer meets them: installed from a local feed into a console that plays
-# a fixture, and into an Android app whose APK must carry the engine's
-# Android build for both ABIs. The repository is public, so these are
-# GitHub's own runners.
+# a fixture, into an Android app whose APK must carry the engine's Android
+# build for both ABIs, and into a .NET for iOS app that links the engine's
+# static library for the device and the simulator and plays a fixture on a
+# booted simulator. The repository is public, so these are GitHub's own runners.
 #
 # While no release is pinned (every digest null), there is no engine CI can
 # fetch — the engine's source is private — so everything past the formatting
@@ -146,3 +147,38 @@ jobs:
         with:
           name: packages
           path: out/packages/
+
+  ios:
+    needs: pin
+    if: needs.pin.outputs.pinned == 'true'
+    runs-on: macos-latest
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        variant: [python, no-python]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: |
+            8.0.x
+            10.0.x
+      # The engine ships no iOS dylib, so the package links its static library
+      # into the app; this builds that app for the device and the simulator and
+      # plays a fixture on a booted simulator. The AOT builds are slow, hence the
+      # generous timeout and the free arm64 runner rather than Blacksmith.
+      - name: The iOS workload
+        run: dotnet workload install ios
+      - uses: actions/cache@v4
+        with:
+          path: out/engine/downloads
+          key: engine-ios-${{ matrix.variant }}-${{ hashFiles('engine.json') }}
+      - name: Stage and pack
+        run: |
+          dotnet run --project tool/Engine -c Release -- stage --variant "${{ matrix.variant }}" --out "out/stage/${{ matrix.variant }}"
+          dotnet pack packaging/RippleFx.Engine.Native -c Release -p:RippleVariant="${{ matrix.variant }}" -o out/packages
+          dotnet pack src/RippleFx.Engine -c Release -o out/packages
+          dotnet run --project tool/Engine -c Release -- fetch --rid osx-arm64 --conformance
+      - name: An iOS app, device and simulator, from a local feed
+        run: bash scripts/check-ios.sh out/packages out/engine/conformance/fixtures/the-choir/bundle "${{ matrix.variant }}"

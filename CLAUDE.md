@@ -20,7 +20,7 @@ and a Unity package will be built on this one.
 | `build/Engine.targets` | The engine for a project here that runs it: fetched before the build, the library copied beside the program. Imported when a project sets `RippleNeedsEngine`. |
 | `engine.json`, `engine-signing.pub`, `scripts/pin-engine.sh` | The pin and its trust anchor, the same files as the C/C++ binding's. |
 | `scripts/generate.sh` | The interop and `tests/RippleFx.Engine.Tests/layout.json`, from the pinned header. |
-| `scripts/check-packages.sh`, `scripts/check-android.sh` | The packages as a consumer meets them, from a local feed: a console, and an Android APK. |
+| `scripts/check-packages.sh`, `scripts/check-android.sh`, `scripts/check-ios.sh` | The packages as a consumer meets them, from a local feed: a console, an Android APK, and an iOS app (device and simulator, the static engine linked in). |
 | `tests/RippleFx.Engine.Tests/` | NUnit: conformance through `Session` and `Player`, the driver, values, the layout. |
 | `examples/ConsolePlayer/` | A terminal player over any bundle folder. |
 | `docs/speaker.md`, `docs/consuming.md` | The speaker contract, and how a project takes the packages. |
@@ -55,6 +55,10 @@ done
 dotnet pack src/RippleFx.Engine -c Release -o out/packages
 bash scripts/check-packages.sh out/packages out/engine/conformance/fixtures/the-choir/bundle
 bash scripts/check-android.sh out/packages python
+# an iOS app, device and simulator, from a local feed (needs Xcode and its
+# simulators; plays the fixture on a booted simulator when one can be had):
+bash scripts/check-ios.sh out/packages out/engine/conformance/fixtures/the-choir/bundle python
+bash scripts/check-ios.sh out/packages out/engine/conformance/fixtures/the-choir/bundle no-python
 ```
 
 The suite plays every conformance fixture of the pinned release through
@@ -62,13 +66,17 @@ The suite plays every conformance fixture of the pinned release through
 21 without, skipping 3 — counts asserted, and the engine asked, not the
 configuration. It checks nothing the engine handed out is left over, holds
 the driver to the scheduler on a recording speaker and a numeric clock,
-compares .NET's layout of all 68 structs with clang's, and holds a disposed
-handle to refusing a call. Eighty-three tests in all. **A test has to be
-able to fail**, and each of these was seen red: a passage's title written
-into its text (every fixture, both hosts); the driver's latency offset
-removed (the late-voice test); two fields of a struct swapped (the layout
-test, naming `offsetof(RippleEntry, id)`); the disposed guard removed from
-`Session`; the Android libraries left out of a package (`check-android.sh`).
+compares .NET's layout of all 68 structs with clang's, holds a disposed
+handle to refusing a call, and holds the iOS native-symbol list to the
+P/Invokes of Native.g.cs (`IosSymbols`). Eighty-four tests in all. **A test
+has to be able to fail**, and each of these was seen red: a passage's title
+written into its text (every fixture, both hosts); the driver's latency
+offset removed (the late-voice test); two fields of a struct swapped (the
+layout test, naming `offsetof(RippleEntry, id)`); the disposed guard removed
+from `Session`; a symbol dropped from the iOS list (`IosSymbols`); the
+Android libraries left out of a package (`check-android.sh`), and the iOS
+ones left out (`check-ios.sh`, where the device link fails naming the
+missing archive).
 
 ## The decisions
 
@@ -146,6 +154,28 @@ test, naming `offsetof(RippleEntry, id)`); the disposed guard removed from
 - **A tree build replaces the pinned one in `out/engine/`** and drops the
   digest marker, so the next pinned fetch unpacks the release again rather
   than trusting it.
+- **iOS is static-only, and linking the `.a` is not enough.** The engine ships
+  no iOS dylib, so the native package's `buildTransitive` targets link
+  `libripple_effect_engine.a` into the app with a `<NativeReference>`
+  (`ForceLoad`, plus the frameworks `native-static-libs.txt` names — the Python
+  build wants CoreFoundation and iconv). But a force-loaded archive whose
+  symbols nothing references is dead-stripped, and a dynamic P/Invoke name is
+  not referenced, so every C entry point is named in `<ReferenceNativeSymbol>`
+  to be kept and exported, and `NativeLibraryResolver` (net8.0 only;
+  `netstandard2.1`, which Unity compiles, has no `NativeLibrary`) points the
+  `ripple_effect_engine` name at the main image. Desktop keeps loading the
+  dylib. `scripts/check-ios.sh` builds for device and simulator and plays a
+  fixture; the `IosSymbols` test holds the symbol list to Native.g.cs.
+- **`RuntimeIdentifiers` (plural) that names a simulator makes a device build
+  target the simulator.** The iOS SDK sets `_SdkIsSimulator` from *either*
+  `RuntimeIdentifier` or `RuntimeIdentifiers` containing `simulator`, so a
+  project listing both and built with `-r ios-arm64` compiles for the simulator
+  while linking the device `.a`, and `ld` fails on the architecture mismatch.
+  Build one runtime identifier at a time with `-r`, and do not pre-declare
+  both.
+- **A device build is unsigned on a free runner.** `-p:EnableCodeSigning=false`
+  gets the link — which is what `check-ios.sh` proves on the device, running
+  nothing, as `check-android.sh` runs nothing on a phone.
 
 ## Releasing
 

@@ -15,7 +15,11 @@
   `RippleFx.Engine.Native.NoPython` without, for Windows, macOS and Linux on
   x64 and arm64, Android on arm64 and x86_64, and iOS on device and
   simulator. A project references exactly one, and one that references both
-  fails to build saying so.
+  fails to build saying so. On iOS the engine is a static library linked
+  into the app — the one platform with no shared build — and the package's
+  targets keep and export its C ABI so the P/Invokes resolve through the main
+  image; CI builds an app for device and simulator and plays a fixture on a
+  booted simulator.
 - **`RippleFx.Engine.Interop`**, the engine's C ABI as P/Invoke, generated
   from the pinned release's header with ClangSharp, every signature
   blittable; CI regenerates it and fails on a difference, and a test holds

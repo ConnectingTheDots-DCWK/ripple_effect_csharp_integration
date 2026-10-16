@@ -59,7 +59,14 @@ its campaign is disposed.
 - **iOS** (`ios-arm64`, `iossimulator-arm64`), 13.0 and up: static only — the
   engine ships no shared library for iOS. The packages carry
   `libripple_effect_engine.a` and the system libraries a static link needs
-  (`native-static-libs.txt`).
+  (`native-static-libs.txt`), and their build targets wire it up: the archive
+  is linked into your app's executable and every C entry point is kept and
+  exported, so the same P/Invokes resolve it through the main image rather than
+  a dylib. **Nothing extra is asked of you** beyond referencing the package and
+  building for an iOS runtime identifier — a simulator on an Apple-silicon Mac
+  is `iossimulator-arm64`, a device is `ios-arm64`. A simulator runtime's own
+  minimum may raise the built deployment target above 13.0. CI builds an app
+  from the packages for both and plays a fixture on a booted simulator.
 
 A self-contained or single-file publish takes the library with it, as it
 does any NuGet native asset.

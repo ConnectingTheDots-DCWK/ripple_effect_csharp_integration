@@ -3,6 +3,17 @@
   project that references both imports it twice: once marks each. The two
   ship libraries of the same name, and whichever won the copy would decide
   silently whether the story runs Python.
+
+  On iOS the engine is a static library — the release ships no dylib for it —
+  so it is linked into the app's single executable with a <NativeReference>,
+  and every C entry point is named in <ReferenceNativeSymbol> so the native
+  linker keeps it past -dead_strip and exports it: the P/Invokes resolve it
+  through the main image (see NativeLibraryResolver in the managed package),
+  not a dylib it could dlopen by name. The symbol list is the P/Invokes of
+  Interop/Native.g.cs; the IosSymbols test holds the two in step. The system
+  libraries a static link needs are the engine's native-static-libs.txt: the
+  Python build wants CoreFoundation and iconv, the one without wants neither
+  beyond what iOS links for every app.
 -->
 <Project>
   <PropertyGroup>
@@ -13,4 +24,94 @@
           Condition="$(_RippleFxNativeImports.Contains(';RippleFx.Engine.Native;')) And $(_RippleFxNativeImports.Contains(';RippleFx.Engine.Native.NoPython;'))">
     <Error Text="RippleFx.Engine.Native and RippleFx.Engine.Native.NoPython are both referenced. Reference one: the engine with Python, or the one without." />
   </Target>
+
+  <ItemGroup Condition="'$(RuntimeIdentifier)' == 'ios-arm64' Or '$(RuntimeIdentifier)' == 'iossimulator-arm64'">
+    <NativeReference Include="$(MSBuildThisFileDirectory)../runtimes/$(RuntimeIdentifier)/native/libripple_effect_engine.a">
+      <Kind>Static</Kind>
+      <ForceLoad>True</ForceLoad>
+      <Frameworks Condition="'$(MSBuildThisFileName)' == 'RippleFx.Engine.Native'">CoreFoundation</Frameworks>
+      <LinkerFlags Condition="'$(MSBuildThisFileName)' == 'RippleFx.Engine.Native'">-liconv</LinkerFlags>
+    </NativeReference>
+    <ReferenceNativeSymbol Include="ripple_bundle_format"><SymbolType>Function</SymbolType></ReferenceNativeSymbol>
+    <ReferenceNativeSymbol Include="ripple_callback_kind_name"><SymbolType>Function</SymbolType></ReferenceNativeSymbol>
+    <ReferenceNativeSymbol Include="ripple_campaign_board"><SymbolType>Function</SymbolType></ReferenceNativeSymbol>
+    <ReferenceNativeSymbol Include="ripple_campaign_board_with_id"><SymbolType>Function</SymbolType></ReferenceNativeSymbol>
+    <ReferenceNativeSymbol Include="ripple_campaign_destroy"><SymbolType>Function</SymbolType></ReferenceNativeSymbol>
+    <ReferenceNativeSymbol Include="ripple_campaign_has_media"><SymbolType>Function</SymbolType></ReferenceNativeSymbol>
+    <ReferenceNativeSymbol Include="ripple_campaign_manifest"><SymbolType>Function</SymbolType></ReferenceNativeSymbol>
+    <ReferenceNativeSymbol Include="ripple_campaign_media_bytes"><SymbolType>Function</SymbolType></ReferenceNativeSymbol>
+    <ReferenceNativeSymbol Include="ripple_campaign_media_path"><SymbolType>Function</SymbolType></ReferenceNativeSymbol>
+    <ReferenceNativeSymbol Include="ripple_campaign_node"><SymbolType>Function</SymbolType></ReferenceNativeSymbol>
+    <ReferenceNativeSymbol Include="ripple_campaign_open_dir"><SymbolType>Function</SymbolType></ReferenceNativeSymbol>
+    <ReferenceNativeSymbol Include="ripple_campaign_open_memory"><SymbolType>Function</SymbolType></ReferenceNativeSymbol>
+    <ReferenceNativeSymbol Include="ripple_campaign_soundscape"><SymbolType>Function</SymbolType></ReferenceNativeSymbol>
+    <ReferenceNativeSymbol Include="ripple_campaign_validate"><SymbolType>Function</SymbolType></ReferenceNativeSymbol>
+    <ReferenceNativeSymbol Include="ripple_cvar_coerce"><SymbolType>Function</SymbolType></ReferenceNativeSymbol>
+    <ReferenceNativeSymbol Include="ripple_cvar_describe_refusal"><SymbolType>Function</SymbolType></ReferenceNativeSymbol>
+    <ReferenceNativeSymbol Include="ripple_cvar_types"><SymbolType>Function</SymbolType></ReferenceNativeSymbol>
+    <ReferenceNativeSymbol Include="ripple_engine_contract"><SymbolType>Function</SymbolType></ReferenceNativeSymbol>
+    <ReferenceNativeSymbol Include="ripple_engine_has_python"><SymbolType>Function</SymbolType></ReferenceNativeSymbol>
+    <ReferenceNativeSymbol Include="ripple_engine_version"><SymbolType>Function</SymbolType></ReferenceNativeSymbol>
+    <ReferenceNativeSymbol Include="ripple_free"><SymbolType>Function</SymbolType></ReferenceNativeSymbol>
+    <ReferenceNativeSymbol Include="ripple_mixer_create"><SymbolType>Function</SymbolType></ReferenceNativeSymbol>
+    <ReferenceNativeSymbol Include="ripple_mixer_cue"><SymbolType>Function</SymbolType></ReferenceNativeSymbol>
+    <ReferenceNativeSymbol Include="ripple_mixer_cut"><SymbolType>Function</SymbolType></ReferenceNativeSymbol>
+    <ReferenceNativeSymbol Include="ripple_mixer_destroy"><SymbolType>Function</SymbolType></ReferenceNativeSymbol>
+    <ReferenceNativeSymbol Include="ripple_mixer_duration_known"><SymbolType>Function</SymbolType></ReferenceNativeSymbol>
+    <ReferenceNativeSymbol Include="ripple_mixer_finishing_id"><SymbolType>Function</SymbolType></ReferenceNativeSymbol>
+    <ReferenceNativeSymbol Include="ripple_mixer_is_idle"><SymbolType>Function</SymbolType></ReferenceNativeSymbol>
+    <ReferenceNativeSymbol Include="ripple_mixer_is_paused"><SymbolType>Function</SymbolType></ReferenceNativeSymbol>
+    <ReferenceNativeSymbol Include="ripple_mixer_muted"><SymbolType>Function</SymbolType></ReferenceNativeSymbol>
+    <ReferenceNativeSymbol Include="ripple_mixer_pass"><SymbolType>Function</SymbolType></ReferenceNativeSymbol>
+    <ReferenceNativeSymbol Include="ripple_mixer_pause"><SymbolType>Function</SymbolType></ReferenceNativeSymbol>
+    <ReferenceNativeSymbol Include="ripple_mixer_play"><SymbolType>Function</SymbolType></ReferenceNativeSymbol>
+    <ReferenceNativeSymbol Include="ripple_mixer_playing_id"><SymbolType>Function</SymbolType></ReferenceNativeSymbol>
+    <ReferenceNativeSymbol Include="ripple_mixer_position_ms"><SymbolType>Function</SymbolType></ReferenceNativeSymbol>
+    <ReferenceNativeSymbol Include="ripple_mixer_ran_out"><SymbolType>Function</SymbolType></ReferenceNativeSymbol>
+    <ReferenceNativeSymbol Include="ripple_mixer_resume"><SymbolType>Function</SymbolType></ReferenceNativeSymbol>
+    <ReferenceNativeSymbol Include="ripple_mixer_set_muted"><SymbolType>Function</SymbolType></ReferenceNativeSymbol>
+    <ReferenceNativeSymbol Include="ripple_mixer_state"><SymbolType>Function</SymbolType></ReferenceNativeSymbol>
+    <ReferenceNativeSymbol Include="ripple_mixer_stop"><SymbolType>Function</SymbolType></ReferenceNativeSymbol>
+    <ReferenceNativeSymbol Include="ripple_mixer_tick"><SymbolType>Function</SymbolType></ReferenceNativeSymbol>
+    <ReferenceNativeSymbol Include="ripple_mixer_track_state"><SymbolType>Function</SymbolType></ReferenceNativeSymbol>
+    <ReferenceNativeSymbol Include="ripple_mixer_voice_ended"><SymbolType>Function</SymbolType></ReferenceNativeSymbol>
+    <ReferenceNativeSymbol Include="ripple_outstanding"><SymbolType>Function</SymbolType></ReferenceNativeSymbol>
+    <ReferenceNativeSymbol Include="ripple_save_check"><SymbolType>Function</SymbolType></ReferenceNativeSymbol>
+    <ReferenceNativeSymbol Include="ripple_save_format"><SymbolType>Function</SymbolType></ReferenceNativeSymbol>
+    <ReferenceNativeSymbol Include="ripple_session_ambience"><SymbolType>Function</SymbolType></ReferenceNativeSymbol>
+    <ReferenceNativeSymbol Include="ripple_session_answer"><SymbolType>Function</SymbolType></ReferenceNativeSymbol>
+    <ReferenceNativeSymbol Include="ripple_session_board"><SymbolType>Function</SymbolType></ReferenceNativeSymbol>
+    <ReferenceNativeSymbol Include="ripple_session_checkpoint"><SymbolType>Function</SymbolType></ReferenceNativeSymbol>
+    <ReferenceNativeSymbol Include="ripple_session_choose"><SymbolType>Function</SymbolType></ReferenceNativeSymbol>
+    <ReferenceNativeSymbol Include="ripple_session_console_feed"><SymbolType>Function</SymbolType></ReferenceNativeSymbol>
+    <ReferenceNativeSymbol Include="ripple_session_create"><SymbolType>Function</SymbolType></ReferenceNativeSymbol>
+    <ReferenceNativeSymbol Include="ripple_session_cvars"><SymbolType>Function</SymbolType></ReferenceNativeSymbol>
+    <ReferenceNativeSymbol Include="ripple_session_default_locale"><SymbolType>Function</SymbolType></ReferenceNativeSymbol>
+    <ReferenceNativeSymbol Include="ripple_session_describe_cvar_write"><SymbolType>Function</SymbolType></ReferenceNativeSymbol>
+    <ReferenceNativeSymbol Include="ripple_session_destroy"><SymbolType>Function</SymbolType></ReferenceNativeSymbol>
+    <ReferenceNativeSymbol Include="ripple_session_elapsed"><SymbolType>Function</SymbolType></ReferenceNativeSymbol>
+    <ReferenceNativeSymbol Include="ripple_session_entities"><SymbolType>Function</SymbolType></ReferenceNativeSymbol>
+    <ReferenceNativeSymbol Include="ripple_session_generator"><SymbolType>Function</SymbolType></ReferenceNativeSymbol>
+    <ReferenceNativeSymbol Include="ripple_session_guard"><SymbolType>Function</SymbolType></ReferenceNativeSymbol>
+    <ReferenceNativeSymbol Include="ripple_session_locale"><SymbolType>Function</SymbolType></ReferenceNativeSymbol>
+    <ReferenceNativeSymbol Include="ripple_session_memory"><SymbolType>Function</SymbolType></ReferenceNativeSymbol>
+    <ReferenceNativeSymbol Include="ripple_session_options_default"><SymbolType>Function</SymbolType></ReferenceNativeSymbol>
+    <ReferenceNativeSymbol Include="ripple_session_pause"><SymbolType>Function</SymbolType></ReferenceNativeSymbol>
+    <ReferenceNativeSymbol Include="ripple_session_python_available"><SymbolType>Function</SymbolType></ReferenceNativeSymbol>
+    <ReferenceNativeSymbol Include="ripple_session_remove_entity"><SymbolType>Function</SymbolType></ReferenceNativeSymbol>
+    <ReferenceNativeSymbol Include="ripple_session_reset_all_cvars"><SymbolType>Function</SymbolType></ReferenceNativeSymbol>
+    <ReferenceNativeSymbol Include="ripple_session_reset_cvar"><SymbolType>Function</SymbolType></ReferenceNativeSymbol>
+    <ReferenceNativeSymbol Include="ripple_session_restart"><SymbolType>Function</SymbolType></ReferenceNativeSymbol>
+    <ReferenceNativeSymbol Include="ripple_session_resume"><SymbolType>Function</SymbolType></ReferenceNativeSymbol>
+    <ReferenceNativeSymbol Include="ripple_session_set_generator"><SymbolType>Function</SymbolType></ReferenceNativeSymbol>
+    <ReferenceNativeSymbol Include="ripple_session_set_locale"><SymbolType>Function</SymbolType></ReferenceNativeSymbol>
+    <ReferenceNativeSymbol Include="ripple_session_set_trace"><SymbolType>Function</SymbolType></ReferenceNativeSymbol>
+    <ReferenceNativeSymbol Include="ripple_session_set_trace_payloads"><SymbolType>Function</SymbolType></ReferenceNativeSymbol>
+    <ReferenceNativeSymbol Include="ripple_session_start"><SymbolType>Function</SymbolType></ReferenceNativeSymbol>
+    <ReferenceNativeSymbol Include="ripple_session_stop"><SymbolType>Function</SymbolType></ReferenceNativeSymbol>
+    <ReferenceNativeSymbol Include="ripple_session_write_cvar"><SymbolType>Function</SymbolType></ReferenceNativeSymbol>
+    <ReferenceNativeSymbol Include="ripple_value_as_text"><SymbolType>Function</SymbolType></ReferenceNativeSymbol>
+    <ReferenceNativeSymbol Include="ripple_value_as_truth"><SymbolType>Function</SymbolType></ReferenceNativeSymbol>
+    <ReferenceNativeSymbol Include="ripple_value_deep_equals"><SymbolType>Function</SymbolType></ReferenceNativeSymbol>
+  </ItemGroup>
 </Project>
