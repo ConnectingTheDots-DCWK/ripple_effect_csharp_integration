@@ -39,9 +39,10 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: |
-            8.0.x
-            10.0.x
+          # The SDK is global.json's; 8.0 is the runtime the tests and the
+          # tools target (net8.0), which an SDK 10 does not carry.
+          global-json-file: global.json
+          dotnet-version: 8.0.x
       # Whitespace and the style the analyzers enforce, checked, never applied.
       # The test project's engine is fetched only on build, so none is needed.
       - name: dotnet format
@@ -69,9 +70,10 @@ jobs:
       - uses: actions/setup-dotnet@v4
         if: steps.pin.outputs.pinned == 'true'
         with:
-          dotnet-version: |
-            8.0.x
-            10.0.x
+          # The SDK is global.json's; 8.0 is the runtime the tests and the
+          # tools target (net8.0), which an SDK 10 does not carry.
+          global-json-file: global.json
+          dotnet-version: 8.0.x
       # The P/Invoke and the layout record, regenerated from the pinned
       # release's header, must be what is committed.
       - name: The interop is the header's
@@ -95,9 +97,10 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: |
-            8.0.x
-            10.0.x
+          # The SDK is global.json's; 8.0 is the runtime the tests and the
+          # tools target (net8.0), which an SDK 10 does not carry.
+          global-json-file: global.json
+          dotnet-version: 8.0.x
       - uses: actions/cache@v4
         with:
           path: out/engine/downloads
@@ -122,9 +125,10 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: |
-            8.0.x
-            10.0.x
+          # The SDK is global.json's; 8.0 is the runtime the tests and the
+          # tools target (net8.0), which an SDK 10 does not carry.
+          global-json-file: global.json
+          dotnet-version: 8.0.x
       - uses: actions/cache@v4
         with:
           path: out/engine/downloads
@@ -179,9 +183,10 @@ jobs:
       - uses: actions/setup-dotnet@v4
         if: steps.xcode.outputs.ready == 'true'
         with:
-          dotnet-version: |
-            8.0.x
-            10.0.x
+          # The SDK is global.json's; 8.0 is the runtime the tests and the
+          # tools target (net8.0), which an SDK 10 does not carry.
+          global-json-file: global.json
+          dotnet-version: 8.0.x
       # The engine ships no iOS dylib, so the package links its static library
       # into the app; this builds that app for the device and the simulator and
       # plays a fixture on a booted simulator. The AOT builds are slow, hence the
