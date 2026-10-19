@@ -1,0 +1,35 @@
+# The tools this repository needs at a version, and the one place each
+# version is written. `mise install` puts them on a machine; `mise run doctor`
+# checks a machine against this file and the pins that live elsewhere; a
+# workflow that needs one of these versions reads it through
+# scripts/mise_pin.sh, never spelling it.
+#
+# What is not here, on purpose: the .NET SDK is global.json's, and setup-dotnet
+# and the SDK's own resolver both read it; ClangSharp is
+# .config/dotnet-tools.json's; the packages' target frameworks are the
+# projects'. The workloads, Xcode, the Android SDK and the compilers are the
+# platform's. The doctor checks all of them.
+#
+# Prebuilt releases only, so `mise install` compiles nothing.
+min_version = { soft = "2026.10.0" }
+
+# mise.lock holds every tool's URL and checksum for these platforms, so an
+# install fetches the same bytes everywhere. `mise lock` after changing a pin.
+[settings]
+lockfile_platforms = ["linux-x64", "linux-arm64", "macos-arm64", "macos-x64", "windows-x64"]
+
+[tools]
+# The secret scan every commit runs, at the version secrets.yml runs in CI.
+"aqua:trufflesecurity/trufflehog" = "3.99.0"
+# A zipapp, so it needs an interpreter; mise's prebuilt one, which
+# scripts/generate.sh's python3 is too. Not published for Windows as a
+# binary; there it is `pip install pre-commit`.
+python = "3.13.16"
+"aqua:pre-commit/pre-commit" = { version = "4.7.0", os = ["unix"] }
+
+# scripts/pin-engine.sh and the hooks read engine.json with it.
+"aqua:jqlang/jq" = "1.8.2"
+
+[tasks.doctor]
+description = "Check this machine has every tool the repository pins, and say how to fix what it lacks."
+run = "bash scripts/doctor.sh"

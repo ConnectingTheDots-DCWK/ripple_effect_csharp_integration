@@ -34,6 +34,13 @@ DOTNET_ROOT=~/.dotnet PATH=~/.dotnet:$PATH`. `scripts/generate.sh` also needs
 `clang` and `python3`; `check-android.sh` the `android` workload, an Android
 SDK (`ANDROID_HOME`) and a JDK. `cargo`, only with `RIPPLE_ENGINE_TREE`.
 
+Each of those keeps its own pin: the SDK is `global.json`'s, which CI's
+`setup-dotnet` reads too, and ClangSharp is `.config/dotnet-tools.json`'s.
+What has no such home — TruffleHog, pre-commit, jq, and the Python they and
+`generate.sh` run on — is pinned in `mise.toml`; `mise install` puts it on a
+machine, and `mise run doctor` (`scripts/doctor.sh`) checks the whole list,
+SDK and workloads included, and says how to fix what is missing.
+
 The hooks: `pre-commit install --hook-type pre-commit --hook-type pre-push`.
 A commit pays for the secret scan (TruffleHog; a clone needs the binary),
 codespell and a whitespace check; a push for `dotnet format` with the
