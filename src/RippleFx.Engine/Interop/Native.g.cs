@@ -23,6 +23,10 @@ namespace RippleFx.Engine.Interop
         RIPPLE_ERROR_STOPPED = 13,
         RIPPLE_ERROR_NOTHING_ASKED = 14,
         RIPPLE_ERROR_UNKNOWN_LOCALE = 15,
+        RIPPLE_ERROR_NOT_PERMITTED = 16,
+        RIPPLE_ERROR_STAND_IN = 17,
+        RIPPLE_ERROR_NO_COUNTDOWN = 18,
+        RIPPLE_ERROR_COUNTDOWN_NOT_BEGUN = 19,
         RIPPLE_ERROR_BOARD_GONE = 20,
         RIPPLE_ERROR_NODE_GONE = 21,
         RIPPLE_ERROR_INVALID_ARGUMENT = -1,
@@ -65,6 +69,7 @@ namespace RippleFx.Engine.Interop
         RIPPLE_TURN_KIND_ENDED = 3,
         RIPPLE_TURN_KIND_FAILED = 4,
         RIPPLE_TURN_KIND_STOPPED = 5,
+        RIPPLE_TURN_KIND_PERMIT = 6,
     }
 
     [NativeTypeName("unsigned int")]
@@ -73,6 +78,8 @@ namespace RippleFx.Engine.Interop
         RIPPLE_VERB_CHOOSE = 0,
         RIPPLE_VERB_ANSWER = 1,
         RIPPLE_VERB_ELAPSED = 2,
+        RIPPLE_VERB_BEGIN_COUNTDOWN = 3,
+        RIPPLE_VERB_EXPIRE = 4,
     }
 
     [NativeTypeName("unsigned int")]
@@ -94,6 +101,7 @@ namespace RippleFx.Engine.Interop
         RIPPLE_RUN_ISSUE_MULTIPLE_INPUTS = 1,
         RIPPLE_RUN_ISSUE_PRODUCER_NOT_RUN = 2,
         RIPPLE_RUN_ISSUE_REENTERED = 3,
+        RIPPLE_RUN_ISSUE_NOTHING_ON_WIRE = 4,
     }
 
     [NativeTypeName("unsigned int")]
@@ -141,6 +149,8 @@ namespace RippleFx.Engine.Interop
         RIPPLE_CALLBACK_KIND_NODE_ENTERED = 15,
         RIPPLE_CALLBACK_KIND_NODE_EXITED = 16,
         RIPPLE_CALLBACK_KIND_NODE_FAILED = 17,
+        RIPPLE_CALLBACK_KIND_COUNTDOWN_STARTED = 18,
+        RIPPLE_CALLBACK_KIND_COUNTDOWN_EXPIRED = 19,
     }
 
     [NativeTypeName("unsigned int")]
@@ -167,6 +177,8 @@ namespace RippleFx.Engine.Interop
         RIPPLE_EFFECT_KIND_ENDED = 9,
         RIPPLE_EFFECT_KIND_FAILED = 10,
         RIPPLE_EFFECT_KIND_STOPPED = 11,
+        RIPPLE_EFFECT_KIND_PERMIT = 12,
+        RIPPLE_EFFECT_KIND_NOTICE = 13,
     }
 
     [NativeTypeName("unsigned int")]
@@ -502,6 +514,12 @@ namespace RippleFx.Engine.Interop
 
         [NativeTypeName("size_t")]
         public UIntPtr need_count;
+
+        [NativeTypeName("const struct RippleStr *")]
+        public RippleStr* permissions;
+
+        [NativeTypeName("size_t")]
+        public UIntPtr permission_count;
     }
 
     public partial struct RippleEdge
@@ -1103,6 +1121,21 @@ namespace RippleFx.Engine.Interop
         public uint media;
     }
 
+    public partial struct RippleChoiceTimer
+    {
+        [NativeTypeName("uint64_t")]
+        public ulong after_ms;
+
+        [NativeTypeName("uint64_t")]
+        public ulong timeout_ms;
+
+        [NativeTypeName("_Bool")]
+        public byte visible;
+
+        [NativeTypeName("uint32_t")]
+        public uint default_choice;
+    }
+
     public unsafe partial struct RipplePassage
     {
         [NativeTypeName("struct RippleStr")]
@@ -1149,9 +1182,24 @@ namespace RippleFx.Engine.Interop
 
         [NativeTypeName("_Bool")]
         public byte silence;
+
+        [NativeTypeName("const struct RippleChoiceTimer *")]
+        public RippleChoiceTimer* timer;
     }
 
-    public partial struct RipplePromptField
+    public partial struct RipplePromptOption
+    {
+        [NativeTypeName("struct RippleStr")]
+        public RippleStr id;
+
+        [NativeTypeName("struct RippleStr")]
+        public RippleStr label;
+
+        [NativeTypeName("struct RippleValue")]
+        public RippleValue value;
+    }
+
+    public unsafe partial struct RipplePromptField
     {
         [NativeTypeName("struct RippleStr")]
         public RippleStr name;
@@ -1161,6 +1209,21 @@ namespace RippleFx.Engine.Interop
 
         [NativeTypeName("struct RippleValue")]
         public RippleValue default_value;
+
+        [NativeTypeName("struct RippleStr")]
+        public RippleStr label;
+
+        [NativeTypeName("struct RippleStr")]
+        public RippleStr placeholder;
+
+        [NativeTypeName("_Bool")]
+        public byte optional;
+
+        [NativeTypeName("const struct RipplePromptOption *")]
+        public RipplePromptOption* options;
+
+        [NativeTypeName("size_t")]
+        public UIntPtr option_count;
     }
 
     public unsafe partial struct RipplePrompt
@@ -1194,6 +1257,30 @@ namespace RippleFx.Engine.Interop
 
         [NativeTypeName("struct RippleStr")]
         public RippleStr node;
+    }
+
+    public unsafe partial struct RipplePermit
+    {
+        [NativeTypeName("const uint32_t *")]
+        public uint* kinds;
+
+        [NativeTypeName("size_t")]
+        public UIntPtr kind_count;
+    }
+
+    public partial struct RippleNotice
+    {
+        [NativeTypeName("struct RippleStr")]
+        public RippleStr code;
+
+        [NativeTypeName("uint32_t")]
+        public uint kind;
+
+        [NativeTypeName("struct RippleStr")]
+        public RippleStr node;
+
+        [NativeTypeName("struct RippleStr")]
+        public RippleStr message;
     }
 
     [StructLayout(LayoutKind.Explicit)]
@@ -1242,6 +1329,14 @@ namespace RippleFx.Engine.Interop
         [FieldOffset(0)]
         [NativeTypeName("const struct RippleFailed *")]
         public RippleFailed* failed;
+
+        [FieldOffset(0)]
+        [NativeTypeName("const struct RipplePermit *")]
+        public RipplePermit* permit;
+
+        [FieldOffset(0)]
+        [NativeTypeName("const struct RippleNotice *")]
+        public RippleNotice* notice;
     }
 
     public partial struct RippleEffect
@@ -1278,6 +1373,41 @@ namespace RippleFx.Engine.Interop
 
         [NativeTypeName("size_t")]
         public UIntPtr count;
+    }
+
+    public partial struct RippleMoment
+    {
+        [NativeTypeName("int64_t")]
+        public long utc_ms;
+
+        [NativeTypeName("int32_t")]
+        public int offset_minutes;
+    }
+
+    public partial struct RippleOptionalF64
+    {
+        [NativeTypeName("_Bool")]
+        public byte present;
+
+        public double value;
+    }
+
+    public unsafe partial struct RipplePosition
+    {
+        [NativeTypeName("struct RippleStr")]
+        public RippleStr label;
+
+        [NativeTypeName("struct RippleOptionalF64")]
+        public RippleOptionalF64 latitude;
+
+        [NativeTypeName("struct RippleOptionalF64")]
+        public RippleOptionalF64 longitude;
+
+        [NativeTypeName("struct RippleOptionalF64")]
+        public RippleOptionalF64 accuracy;
+
+        [NativeTypeName("const struct RippleMoment *")]
+        public RippleMoment* when;
     }
 
     public unsafe partial struct RipplePaused
@@ -1619,6 +1749,30 @@ namespace RippleFx.Engine.Interop
 
         [DllImport("ripple_effect_engine", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
         [return: NativeTypeName("enum RippleResult")]
+        public static extern RippleResult ripple_session_begin_countdown([NativeTypeName("struct RippleSession *")] RippleSession* session, [NativeTypeName("const struct RippleEffects **")] RippleEffects** @out, [NativeTypeName("const struct RippleError **")] RippleError** error);
+
+        [DllImport("ripple_effect_engine", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        [return: NativeTypeName("enum RippleResult")]
+        public static extern RippleResult ripple_session_expire([NativeTypeName("struct RippleSession *")] RippleSession* session, [NativeTypeName("const struct RippleEffects **")] RippleEffects** @out, [NativeTypeName("const struct RippleError **")] RippleError** error);
+
+        [DllImport("ripple_effect_engine", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        [return: NativeTypeName("enum RippleResult")]
+        public static extern RippleResult ripple_session_permit([NativeTypeName("struct RippleSession *")] RippleSession* session, [NativeTypeName("uint32_t")] uint kind, [NativeTypeName("_Bool")] byte granted, [NativeTypeName("const struct RippleEffects **")] RippleEffects** @out, [NativeTypeName("const struct RippleError **")] RippleError** error);
+
+        [DllImport("ripple_effect_engine", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        [return: NativeTypeName("enum RippleResult")]
+        public static extern RippleResult ripple_session_set_now([NativeTypeName("struct RippleSession *")] RippleSession* session, [NativeTypeName("const struct RippleMoment *")] RippleMoment* now, [NativeTypeName("const struct RippleError **")] RippleError** error);
+
+        [DllImport("ripple_effect_engine", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        [return: NativeTypeName("enum RippleResult")]
+        public static extern RippleResult ripple_session_set_position([NativeTypeName("struct RippleSession *")] RippleSession* session, [NativeTypeName("const struct RipplePosition *")] RipplePosition* position, [NativeTypeName("const struct RippleError **")] RippleError** error);
+
+        [DllImport("ripple_effect_engine", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        [return: NativeTypeName("enum RippleResult")]
+        public static extern RippleResult ripple_session_set_stand_in([NativeTypeName("struct RippleSession *")] RippleSession* session, [NativeTypeName("uint32_t")] uint kind, [NativeTypeName("struct RippleStr")] RippleStr typed, [NativeTypeName("int32_t")] int local_offset_minutes, [NativeTypeName("const struct RippleError **")] RippleError** error);
+
+        [DllImport("ripple_effect_engine", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        [return: NativeTypeName("enum RippleResult")]
         public static extern RippleResult ripple_session_set_locale([NativeTypeName("struct RippleSession *")] RippleSession* session, [NativeTypeName("struct RippleStr")] RippleStr locale, [NativeTypeName("const struct RippleEffects **")] RippleEffects** @out, [NativeTypeName("const struct RippleError **")] RippleError** error);
 
         [DllImport("ripple_effect_engine", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
@@ -1728,8 +1882,8 @@ namespace RippleFx.Engine.Interop
         [NativeTypeName("#define RIPPLE_CONTRACT_MAJOR 1")]
         public const int RIPPLE_CONTRACT_MAJOR = 1;
 
-        [NativeTypeName("#define RIPPLE_CONTRACT_MINOR 5")]
-        public const int RIPPLE_CONTRACT_MINOR = 5;
+        [NativeTypeName("#define RIPPLE_CONTRACT_MINOR 6")]
+        public const int RIPPLE_CONTRACT_MINOR = 6;
 
         [NativeTypeName("#define RIPPLE_MIXER_DEFAULT_MAX_CUES 8")]
         public const int RIPPLE_MIXER_DEFAULT_MAX_CUES = 8;
