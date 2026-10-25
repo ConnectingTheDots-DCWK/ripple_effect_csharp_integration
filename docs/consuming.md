@@ -76,6 +76,37 @@ blittable and nothing calls back into managed code, so no marshalling stub
 is generated at run time: the assembly is marked AOT-compatible for `net8.0`,
 and the same holds under IL2CPP.
 
+## The world outside the story, a countdown, a form
+
+Three things a 1.6 campaign may ask of a host, each in
+`campaign-host-api.md`:
+
+- **It may read the clock and the reader's position, and asks first.** The
+  manifest's `Permissions` lists what the story reads — `dateTime`,
+  `location` — and a session with a kind unanswered begins on
+  `Effect.Permit` rather than a page; `Session.Permit(kind, granted)`
+  answers each, and the last answer begins the story. A host that already
+  knows its answers gives them before `Start`, and the reader is never asked;
+  a resumed session is told again, since a save carries no answer. The engine
+  still reads no clock and no sensor: `SetNow` hands it a `Moment` before
+  every verb that can step (`PlayerHandlers.Now` does it for a `Player`), and
+  `SetPosition` a `Position` — refused once location is denied. A reader may
+  give a stand-in instead (`SetStandIn`), answered whenever the real value is
+  missing, and a read that did not get the real value says so, once, as
+  `Effect.Notice`.
+- **A passage may count down.** `Passage.Timer` is a `ChoiceTimer`: the
+  host's clock waits `AfterMs`, calls `BeginCountdown`, waits `TimeoutMs` and
+  calls `Expire`, which takes the passage's `Default`. A `Player` runs it on
+  its own clock from `Update()`, keeps it across `SetLocale`, and drops it
+  on any other verb. A time limit is an accessibility question (WCAG 2.2.1):
+  `PlayerHandlers.Countdowns = false` runs none, for a reader who asked for
+  that.
+- **A form speaks the reader's language.** A `PromptField` has a `Label` and
+  a `Placeholder` in the current language, beside the `Name` an answer is
+  keyed by; it may be `Optional`, answered by leaving it out; and it may
+  offer `Options`, answered with the picked options' `Id`s — one for a
+  scalar type, a list of them for a `…List` — never with their labels.
+
 ## On the web
 
 **.NET in the browser is not a target yet.** The engine's web build for a

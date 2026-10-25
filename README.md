@@ -35,13 +35,17 @@ for (var batch = session.Start(); ;)
         Effect.Show shown => session.Choose(Pick(shown.Passage)),   // Markdown, and its pictures
         Effect.Hold hold => WaitThenElapsed(session, hold.Ms),      // your clock, never the engine's
         Effect.Ask asked => session.Answer(Fill(asked.Prompt)),
+        Effect.Permit permit => Allow(session, permit.Kinds),       // the clock, a position: the reader says
         _ => throw new InvalidOperationException(),
     };
 }
 ```
 
-`Player` is the same loop written once: it answers holds from your frame's
-`Update()`, applies the sound, and dispatches the author's named callbacks.
+`Player` is the same loop written once: it answers holds and runs a
+passage's countdown from your frame's `Update()`, applies the sound, and
+dispatches the author's named callbacks. A story that reads the clock or the
+reader's position asks first, with `Effect.Permit`, and is handed both by
+you — the engine reads neither.
 `examples/ConsolePlayer` is a terminal player.
 
 ## Getting it
@@ -61,7 +65,7 @@ one engine release, `engine-v<version>` of the public
 [ripple_engine_releases](https://github.com/ConnectingTheDots-DCWK/ripple_engine_releases),
 whose signed manifest names every archive, and the engine packages carry
 exactly those archives' libraries. A version here is the engine's contract,
-`MAJOR.MINOR`, and a `PATCH` of its own: 1.5.0 binds contract 1.5.
+`MAJOR.MINOR`, and a `PATCH` of its own: 1.6.0 binds contract 1.6.
 
 ## Working on it
 
