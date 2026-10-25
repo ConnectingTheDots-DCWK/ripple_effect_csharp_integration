@@ -7,6 +7,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using NUnit.Framework;
@@ -47,9 +48,9 @@ namespace RippleFx.Engine.Tests
                 Compare(name, Play(fixture, input, throughPlayer), Json.Read(Path.Combine(fixture, "expect.json")));
                 played++;
             }
-            // Twenty-four fixtures, three of which need the interpreter.
-            Assert.That(played + skipped, Is.EqualTo(24), "fixtures found");
-            Assert.That(skipped, Is.EqualTo(python ? 0 : 3), "fixtures skipped for want of Python");
+            // Thirty-three fixtures, six of which need the interpreter.
+            Assert.That(played + skipped, Is.EqualTo(33), "fixtures found");
+            Assert.That(skipped, Is.EqualTo(python ? 0 : 6), "fixtures skipped for want of Python");
         }
 
         private static bool NeedsPython(Value input) =>
@@ -94,7 +95,34 @@ namespace RippleFx.Engine.Tests
                 ? new PlayerHost(campaign, session, config.Seed, record)
                 : new SessionHost(campaign, session, config.Seed, record);
 
+            // What the host knows before the story starts — the instant it is
+            // played at, the reader's answers and their stand-ins — told to a
+            // fresh session, and again to a resumed one, which a save carries
+            // no answer into. A move's answer is remembered with the rest.
+            var now = input.Find("now") is { } instant
+                ? Moment.Of(DateTimeOffset.Parse(instant.AsText(), CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal))
+                : null;
+            var answered = new List<KeyValuePair<PermissionKind, bool>>(
+                ByKind(input.Find("permit")).Select(entry => new KeyValuePair<PermissionKind, bool>(entry.Key, entry.Value.AsBool())));
+            var standIns = ByKind(input.Find("standIns")).Select(entry => new KeyValuePair<PermissionKind, string>(entry.Key, entry.Value.AsText())).ToArray();
+            void Tell()
+            {
+                if (now != null)
+                {
+                    host.Session.SetNow(now);
+                }
+                foreach (var (kind, granted) in answered)
+                {
+                    host.Permit(kind, granted);
+                }
+                foreach (var (kind, typed) in standIns)
+                {
+                    host.Session.SetStandIn(kind, typed, 0);
+                }
+            }
+
             string? saved = null;
+            Tell();
             host.Start();
             foreach (var move in input.Find("moves")!.AsList())
             {
@@ -123,14 +151,36 @@ namespace RippleFx.Engine.Tests
                     case "resume":
                         host.Resume(saved!);
                         saved = null;
+                        Tell();
+                        host.Start();
                         break;
                     case "restart":
                         host.Restart();
                         break;
+                    // A fixture's clock runs no countdown by itself: the moves say when.
+                    case "countdown":
+                        AtAPassage(host, "runs a countdown");
+                        host.BeginCountdown();
+                        break;
+                    case "expire":
+                        AtAPassage(host, "runs a countdown out");
+                        host.Expire();
+                        break;
+                    case "permit":
+                        {
+                            var kind = PermissionKinds.FromWire(move.Find("kind")!.AsText())
+                                ?? throw new InvalidOperationException("a move answers for a kind this binding does not know");
+                            var granted = move.Find("granted")!.AsBool();
+                            answered.RemoveAll(entry => entry.Key == kind);
+                            answered.Add(new KeyValuePair<PermissionKind, bool>(kind, granted));
+                            host.Permit(kind, granted);
+                            break;
+                        }
                 }
             }
-            // The reader has left: the story goes on by itself until it is over.
-            while (!Over(host.Turn))
+            // The reader has left: the story goes on by itself until it is over —
+            // or, nobody having answered its question, never begins.
+            while (!Over(host.Turn) && host.Turn is not Effect.Permit)
             {
                 switch (host.Turn)
                 {
@@ -153,6 +203,20 @@ namespace RippleFx.Engine.Tests
         }
 
         private static bool Over(Effect? turn) => turn == null || turn.IsOver;
+
+        private static void AtAPassage(IHost host, string what)
+        {
+            if (host.Turn is not Effect.Show)
+            {
+                throw new InvalidOperationException($"a move {what} where no passage is showing");
+            }
+        }
+
+        // A fixture's map keyed by a kind's wire name, in the order written.
+        private static IEnumerable<KeyValuePair<PermissionKind, Value>> ByKind(Value? map) =>
+            (map?.AsMap() ?? Array.Empty<KeyValuePair<string, Value>>()).Select(entry => new KeyValuePair<PermissionKind, Value>(
+                PermissionKinds.FromWire(entry.Key) ?? throw new InvalidOperationException($"\"{entry.Key}\" is not a kind a story may ask for"),
+                entry.Value));
 
         private sealed class Played
         {
@@ -194,6 +258,14 @@ namespace RippleFx.Engine.Tests
                             {
                                 entries.Add(("untranslated", untranslated));
                             }
+                            if (e.Passage.Timer is { } timer)
+                            {
+                                entries.Add(("timer", Value.Map(
+                                    ("after", (long)timer.AfterMs),
+                                    ("timeout", (long)timer.TimeoutMs),
+                                    ("visible", timer.Visible),
+                                    ("default", (long)timer.Default))));
+                            }
                             into.Trace.Add(Value.Map(entries.ToArray()));
                             break;
                         }
@@ -201,8 +273,23 @@ namespace RippleFx.Engine.Tests
                         into.Trace.Add(Value.Map(
                             ("kind", "prompt"),
                             ("node", e.Prompt.Node),
-                            ("fields", Value.List(e.Prompt.Fields.Select(field => Value.Map(("name", field.Name), ("type", field.Type)))))));
+                            ("fields", Value.List(e.Prompt.Fields.Select(Field)))));
                         break;
+                    case Effect.Permit e:
+                        into.Trace.Add(Value.Map(("kind", "permit"), ("kinds", Value.List(e.Kinds.Select(kind => Value.Text(kind.Wire()))))));
+                        break;
+                    case Effect.Notice e:
+                        {
+                            // `of`, because `kind` is the event's own.
+                            var entries = new List<(string, Value)> { ("kind", "notice"), ("code", e.Code), ("of", e.Kind.Wire()) };
+                            if (e.Node is { } node)
+                            {
+                                entries.Add(("node", node));
+                            }
+                            entries.Add(("message", e.Message));
+                            into.Trace.Add(Value.Map(entries.ToArray()));
+                            break;
+                        }
                     case Effect.Jumped e:
                         into.Trace.Add(e.Node == null
                             ? Value.Map(("kind", "jump"), ("board", Board(e.Board)))
@@ -270,12 +357,31 @@ namespace RippleFx.Engine.Tests
             }
 
             private string Board(uint at) => at < boards.Count ? boards[(int)at] : "";
+
+            // A field's name and type, `optional` only when it is, and the IDs
+            // of its options only when it has some. Labels are not recorded.
+            private static Value Field(PromptField field)
+            {
+                var entries = new List<(string, Value)> { ("name", field.Name), ("type", field.Type) };
+                if (field.Optional)
+                {
+                    entries.Add(("optional", true));
+                }
+                if (field.Options.Count > 0)
+                {
+                    entries.Add(("options", Value.List(field.Options.Select(option => Value.Text(option.Id)))));
+                }
+                return Value.Map(entries.ToArray());
+            }
         }
 
         // The same verbs whichever API is underneath, and where the story is.
         private interface IHost : IDisposable
         {
             Effect? Turn { get; }
+
+            /// <summary>The session underneath, for what a host tells it rather than asks.</summary>
+            Session Session { get; }
 
             void Start();
 
@@ -286,6 +392,12 @@ namespace RippleFx.Engine.Tests
             void Answer(IReadOnlyList<KeyValuePair<string, Value>>? values);
 
             void Elapsed();
+
+            void BeginCountdown();
+
+            void Expire();
+
+            void Permit(PermissionKind kind, bool granted);
 
             void SetLocale(string locale);
 
@@ -317,6 +429,8 @@ namespace RippleFx.Engine.Tests
 
             public Effect? Turn { get; private set; }
 
+            public Session Session => session;
+
             public void Start() => Settle(session.Start());
 
             public void Choose(int index) => Settle(session.Choose(index));
@@ -326,6 +440,12 @@ namespace RippleFx.Engine.Tests
             public void Answer(IReadOnlyList<KeyValuePair<string, Value>>? values) => Settle(session.Answer(values));
 
             public void Elapsed() => Settle(session.Elapsed());
+
+            public void BeginCountdown() => Settle(session.BeginCountdown());
+
+            public void Expire() => Settle(session.Expire());
+
+            public void Permit(PermissionKind kind, bool granted) => Settle(session.Permit(kind, granted));
 
             public void SetLocale(string locale) => Settle(session.SetLocale(locale));
 
@@ -342,7 +462,6 @@ namespace RippleFx.Engine.Tests
                 session.Dispose();
                 session = Session.Resume(campaign, save, seed, FixtureOptions());
                 session.Generator = generator;
-                Settle(session.Start());
             }
 
             public void Restart() => Settle(session.Restart());
@@ -392,6 +511,8 @@ namespace RippleFx.Engine.Tests
 
             public Effect? Turn => player.Turn;
 
+            public Session Session => player.Session;
+
             public void Start() => Run(() => player.Start());
 
             public void Choose(int index) => Run(() => player.Choose(index));
@@ -407,6 +528,12 @@ namespace RippleFx.Engine.Tests
                     record.Record(effect);
                 }
             }
+
+            public void BeginCountdown() => Run(() => player.BeginCountdown());
+
+            public void Expire() => Run(() => player.Expire());
+
+            public void Permit(PermissionKind kind, bool granted) => Run(() => player.Permit(kind, granted));
 
             public void SetLocale(string locale) => Run(() => player.SetLocale(locale));
 
@@ -424,7 +551,6 @@ namespace RippleFx.Engine.Tests
                 var session = Session.Resume(campaign, save, seed, FixtureOptions());
                 session.Generator = generator;
                 player = Make(session);
-                Run(() => player.Start());
             }
 
             public void Restart() => Run(() => player.Restart());
@@ -439,6 +565,8 @@ namespace RippleFx.Engine.Tests
                 {
                     OnEffect = record.Record,
                     OnError = error => Assert.Fail(error.ToString()),
+                    // The moves run countdowns, through the player's own verbs.
+                    Countdowns = false,
                 },
                 () => now);
 

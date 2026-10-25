@@ -70,6 +70,7 @@ namespace RippleFx.Engine.Internal
                 return new Cvar(Read.Str(c->name), Read.Str(c->type_name), Arena.Read(c->default_value));
             }),
             Needs = Read.Texts(m->needs, m->need_count),
+            Permissions = Read.Texts(m->permissions, m->permission_count),
         };
 
         private static Port Port(RipplePort* p) => new Port(
@@ -118,6 +119,15 @@ namespace RippleFx.Engine.Internal
             Untranslated = Read.Opt(p->untranslated),
             Soundscape = p->soundscape == null ? null : Soundscape(p->soundscape),
             Silence = p->silence != 0,
+            Timer = p->timer == null
+                ? null
+                : new ChoiceTimer
+                {
+                    AfterMs = p->timer->after_ms,
+                    TimeoutMs = p->timer->timeout_ms,
+                    Visible = p->timer->visible != 0,
+                    Default = checked((int)p->timer->default_choice),
+                },
         };
 
         public static Prompt Prompt(RipplePrompt* p) => new Prompt(
@@ -126,7 +136,17 @@ namespace RippleFx.Engine.Internal
             Read.List(p->fields, p->field_count, item =>
             {
                 var f = (RipplePromptField*)item;
-                return new PromptField(Read.Str(f->name), Read.Str(f->type_name), Arena.Read(f->default_value));
+                return new PromptField(Read.Str(f->name), Read.Str(f->type_name), Arena.Read(f->default_value))
+                {
+                    Label = Read.Str(f->label),
+                    Placeholder = Read.Str(f->placeholder),
+                    Optional = f->optional != 0,
+                    Options = Read.List(f->options, f->option_count, option =>
+                    {
+                        var o = (RipplePromptOption*)option;
+                        return new PromptOption(Read.Str(o->id), Read.Str(o->label), Arena.Read(o->value));
+                    }),
+                };
             }));
 
         public static Ambience Ambience(RippleAmbience* a) =>
@@ -257,6 +277,13 @@ namespace RippleFx.Engine.Internal
                     return new Effect.Ended(Read.Opt(data.ended->title), data.ended->ran_out != 0);
                 case RippleEffectKind.RIPPLE_EFFECT_KIND_FAILED:
                     return new Effect.Failed(Read.Str(data.failed->message), Read.Opt(data.failed->node));
+                case RippleEffectKind.RIPPLE_EFFECT_KIND_PERMIT:
+                    return new Effect.Permit(Read.List(data.permit->kinds, data.permit->kind_count, item => (PermissionKind)(*(uint*)item)));
+                case RippleEffectKind.RIPPLE_EFFECT_KIND_NOTICE:
+                    {
+                        var n = data.notice;
+                        return new Effect.Notice(Read.Str(n->code), (PermissionKind)n->kind, Read.Opt(n->node), Read.Str(n->message));
+                    }
                 default:
                     return new Effect.Stopped();
             }

@@ -8,12 +8,12 @@ namespace RippleFx.Engine
     public static unsafe class RippleEngine
     {
         /// <summary>The contract these bindings bind: <c>MAJOR.MINOR</c>.</summary>
-        public const string BoundContract = "1.5";
+        public const string BoundContract = "1.6";
 
         private static readonly object Gate = new object();
         private static volatile bool checkedOnce;
 
-        /// <summary>The engine library's version, <c>1.5.3</c> — the one loaded, not the one built against.</summary>
+        /// <summary>The engine library's version, <c>1.6.0</c> — the one loaded, not the one built against.</summary>
         public static string Version
         {
             get
@@ -23,7 +23,7 @@ namespace RippleFx.Engine
             }
         }
 
-        /// <summary>The contract the loaded library binds, <c>1.5</c>.</summary>
+        /// <summary>The contract the loaded library binds, <c>1.6</c>.</summary>
         public static string Contract
         {
             get

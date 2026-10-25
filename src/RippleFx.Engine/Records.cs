@@ -87,6 +87,12 @@ namespace RippleFx.Engine
         public IReadOnlyList<Cvar> Cvars { get; init; } = Array.Empty<Cvar>();
         /// <summary>What the campaign needs of its host: <c>python</c>, when it runs scripts.</summary>
         public IReadOnlyList<string> Needs { get; init; } = Array.Empty<string>();
+        /// <summary>
+        /// What the story reads of the world outside it, by wire name —
+        /// <c>dateTime</c>, <c>location</c> — listed by the compiler. A session
+        /// asks about each before the story begins (<see cref="Effect.Permit"/>).
+        /// </summary>
+        public IReadOnlyList<string> Permissions { get; init; } = Array.Empty<string>();
     }
 
     public sealed record Edge(long Node, long Port);
@@ -126,6 +132,24 @@ namespace RippleFx.Engine
     /// <summary>A link in a passage's prose and the medium it names, by index into the manifest's media.</summary>
     public sealed record MediaLink(string Link, uint Media);
 
+    /// <summary>
+    /// A passage's countdown — <c>campaign-host-api.md</c> §4b. The host's
+    /// clock waits <see cref="AfterMs"/>, calls <c>BeginCountdown</c>, waits
+    /// <see cref="TimeoutMs"/> and calls <c>Expire</c>; the engine measures none
+    /// of it, and takes <see cref="Default"/> as a reader would.
+    /// </summary>
+    public sealed record ChoiceTimer
+    {
+        /// <summary>How long before the countdown begins; zero is at once.</summary>
+        public ulong AfterMs { get; init; }
+        /// <summary>How long it runs once begun; never zero.</summary>
+        public ulong TimeoutMs { get; init; }
+        /// <summary>Whether the author meant the reader to see it count.</summary>
+        public bool Visible { get; init; }
+        /// <summary>The index into the passage's choices taken when it runs out.</summary>
+        public int Default { get; init; }
+    }
+
     /// <summary>A passage the reader is on.</summary>
     public sealed record Passage
     {
@@ -141,12 +165,117 @@ namespace RippleFx.Engine
         public string? Untranslated { get; init; }
         public Soundscape? Soundscape { get; init; }
         public bool Silence { get; init; }
+        /// <summary>
+        /// The passage's countdown; null when it waits for the reader for as
+        /// long as they like. A re-rendered passage — after <c>SetLocale</c> —
+        /// is the same visit, with the same countdown.
+        /// </summary>
+        public ChoiceTimer? Timer { get; init; }
     }
 
-    public sealed record PromptField(string Name, string Type, Value Default);
+    /// <summary>One fixed answer a form field offers.</summary>
+    /// <param name="Id">What a host answers with; the same in every language.</param>
+    /// <param name="Label">What the reader is shown, in the reader's language.</param>
+    /// <param name="Value">What the story is handed when it is picked, of the field's type.</param>
+    public sealed record PromptOption(string Id, string Label, Value Value);
+
+    /// <summary>
+    /// One field of a form. <see cref="Name"/> is what an answer is keyed by;
+    /// <see cref="Default"/> is what the control is filled in with, and is the
+    /// answer if nobody edits it.
+    /// </summary>
+    public sealed record PromptField(string Name, string Type, Value Default)
+    {
+        /// <summary>What the reader is shown for the field, in the reader's language: the name where the author wrote nothing.</summary>
+        public string Label { get; init; } = "";
+
+        /// <summary>The hint drawn while the field is empty; empty for none. Never the answer.</summary>
+        public string Placeholder { get; init; } = "";
+
+        /// <summary>
+        /// Whether the reader may leave the field empty, which answers null —
+        /// leave its name out, or send <see cref="Value.Null"/>. A required field
+        /// is not submitted empty.
+        /// </summary>
+        public bool Optional { get; init; }
+
+        /// <summary>
+        /// The fixed answers the reader picks from, in order: one for a scalar
+        /// type, any number for a <c>…List</c>. Empty for a field the reader
+        /// types into. Answer with the picked options' <see cref="PromptOption.Id"/>s.
+        /// </summary>
+        public IReadOnlyList<PromptOption> Options { get; init; } = Array.Empty<PromptOption>();
+    }
 
     /// <summary>A form the story asks the reader to fill.</summary>
     public sealed record Prompt(string Node, string Title, IReadOnlyList<PromptField> Fields);
+
+    /// <summary>
+    /// What a story may read of the world outside it — <c>campaign-host-api.md</c>
+    /// §7a. Open for appending: a kind this binding does not name arrives as
+    /// its number.
+    /// </summary>
+    public enum PermissionKind : uint
+    {
+        /// <summary>The date and time, <c>dateTime</c>: <see cref="Session.SetNow"/>.</summary>
+        DateTime = 0,
+        /// <summary>The reader's position, <c>location</c>: <see cref="Session.SetPosition"/>.</summary>
+        Location = 1,
+    }
+
+    /// <summary>A <see cref="PermissionKind"/>'s wire name, as the manifest and a save spell it.</summary>
+    public static class PermissionKinds
+    {
+        /// <summary><c>dateTime</c>, <c>location</c>; a kind this binding does not name, as its number.</summary>
+        public static string Wire(this PermissionKind kind) => kind switch
+        {
+            PermissionKind.DateTime => "dateTime",
+            PermissionKind.Location => "location",
+            _ => ((uint)kind).ToString(System.Globalization.CultureInfo.InvariantCulture),
+        };
+
+        /// <summary>The kind a wire name names, as the manifest's <see cref="Manifest.Permissions"/> lists it; null for one this binding does not know.</summary>
+        public static PermissionKind? FromWire(string wire) => wire switch
+        {
+            "dateTime" => PermissionKind.DateTime,
+            "location" => PermissionKind.Location,
+            _ => null,
+        };
+    }
+
+    /// <summary>
+    /// An instant from the host: milliseconds since the Unix epoch, and the
+    /// offset in minutes the reader's wall clock is at. A story's
+    /// <c>datetime.now()</c> is naive at that offset.
+    /// </summary>
+    public sealed record Moment(long UtcMs, int OffsetMinutes)
+    {
+        /// <summary>The instant <paramref name="at"/> names, at its own offset.</summary>
+        public static Moment Of(DateTimeOffset at) => new Moment(at.ToUnixTimeMilliseconds(), (int)at.Offset.TotalMinutes);
+
+        /// <summary>This machine's clock, at this machine's offset.</summary>
+        public static Moment Now() => Of(DateTimeOffset.Now);
+
+        /// <summary>The same instant as a <see cref="DateTimeOffset"/>.</summary>
+        public DateTimeOffset ToDateTimeOffset() =>
+            DateTimeOffset.FromUnixTimeMilliseconds(UtcMs).ToOffset(TimeSpan.FromMinutes(OffsetMinutes));
+    }
+
+    /// <summary>
+    /// A position fix, any part of which may be absent — shaped after the
+    /// web's <c>GeolocationPosition</c>, as a story's <c>location_get()</c> sees it.
+    /// </summary>
+    public sealed record Position
+    {
+        /// <summary>A place's name, for a fix that has one.</summary>
+        public string? Label { get; init; }
+        public double? Latitude { get; init; }
+        public double? Longitude { get; init; }
+        /// <summary>In metres.</summary>
+        public double? Accuracy { get; init; }
+        /// <summary>When the fix was taken; null when it is not known.</summary>
+        public Moment? When { get; init; }
+    }
 
     /// <summary>The soundscape in force, and the node that set it.</summary>
     public sealed record Ambience(Soundscape Soundscape, uint Board, string Node);

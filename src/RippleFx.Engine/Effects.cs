@@ -6,7 +6,8 @@ namespace RippleFx.Engine
     /// One thing a verb led to. A verb answers a batch of them in the order
     /// they are applied, and the last is a Turn — where the story now is:
     /// <see cref="Show"/>, <see cref="Ask"/>, <see cref="Hold"/>,
-    /// <see cref="Ended"/>, <see cref="Failed"/> or <see cref="Stopped"/>.
+    /// <see cref="Permit"/>, <see cref="Ended"/>, <see cref="Failed"/> or
+    /// <see cref="Stopped"/>.
     /// <code>
     /// switch (effect)
     /// {
@@ -45,7 +46,21 @@ namespace RippleFx.Engine
         /// <summary>Which stores moved; a store that did not is null.</summary>
         public sealed record Changed(IReadOnlyList<Entity>? Entities, Memory? Memory, IReadOnlyList<CvarSnapshot>? Cvars) : Effect;
 
-        /// <summary>A Turn: a passage, answered with <c>Choose</c> or <c>Leave</c>.</summary>
+        /// <summary>
+        /// A read of the world outside the story that did not get the real
+        /// value — once per kind and outcome in a playthrough, before the Turn
+        /// of the verb that read it. <c>Code</c> is the playthrough family's —
+        /// <c>I.RT.05</c> a stand-in, <c>W.RT.06</c> a refusal, <c>I.RT.07</c>
+        /// nothing — and its letter is the severity; <c>Node</c> is the node
+        /// whose read it was, and <c>Message</c> the engine's English sentence.
+        /// </summary>
+        public sealed record Notice(string Code, PermissionKind Kind, string? Node, string Message) : Effect;
+
+        /// <summary>
+        /// A Turn: the passage, answered with <c>Choose</c> or <c>Leave</c>
+        /// — or, when it carries a <see cref="Passage.Timer"/>, by the host's
+        /// clock with <c>BeginCountdown</c> and <c>Expire</c>.
+        /// </summary>
         public sealed record Show(Passage Passage) : Effect
         {
             public override bool IsTurn => true;
@@ -59,6 +74,17 @@ namespace RippleFx.Engine
 
         /// <summary>A Turn: a wait, answered with <c>Elapsed</c> once the host's clock says so.</summary>
         public sealed record Hold(ulong Ms) : Effect
+        {
+            public override bool IsTurn => true;
+        }
+
+        /// <summary>
+        /// A Turn before the story begins: it reads these kinds and nobody has
+        /// answered. Answer each with <c>Permit</c>; the answer to the last one
+        /// begins the story. A host that already knows its answers gives them
+        /// before <c>Start</c>, and never sees this.
+        /// </summary>
+        public sealed record Permit(IReadOnlyList<PermissionKind> Kinds) : Effect
         {
             public override bool IsTurn => true;
         }
