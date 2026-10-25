@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using RippleFx.Engine.Interop;
 
 namespace RippleFx.Engine
 {
@@ -212,15 +213,15 @@ namespace RippleFx.Engine
 
     /// <summary>
     /// What a story may read of the world outside it — <c>campaign-host-api.md</c>
-    /// §7a. Open for appending: a kind this binding does not name arrives as
-    /// its number.
+    /// §7a, the header's <c>RipplePermissionKind</c>. Open for appending: a kind
+    /// this binding does not name arrives as its number.
     /// </summary>
     public enum PermissionKind : uint
     {
         /// <summary>The date and time, <c>dateTime</c>: <see cref="Session.SetNow"/>.</summary>
-        DateTime = 0,
+        DateTime = RipplePermissionKind.RIPPLE_PERMISSION_KIND_DATE_TIME,
         /// <summary>The reader's position, <c>location</c>: <see cref="Session.SetPosition"/>.</summary>
-        Location = 1,
+        Location = RipplePermissionKind.RIPPLE_PERMISSION_KIND_LOCATION,
     }
 
     /// <summary>A <see cref="PermissionKind"/>'s wire name, as the manifest and a save spell it.</summary>

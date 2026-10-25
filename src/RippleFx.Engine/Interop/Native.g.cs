@@ -234,6 +234,13 @@ namespace RippleFx.Engine.Interop
         RIPPLE_PHASE_FINISHED = 4,
     }
 
+    [NativeTypeName("unsigned int")]
+    public enum RipplePermissionKind : uint
+    {
+        RIPPLE_PERMISSION_KIND_DATE_TIME = 0,
+        RIPPLE_PERMISSION_KIND_LOCATION = 1,
+    }
+
     public partial struct RippleCampaign
     {
     }

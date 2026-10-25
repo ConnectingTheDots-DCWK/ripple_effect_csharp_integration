@@ -158,9 +158,9 @@ out of a package (`check-android.sh`), and the iOS ones left out
   times holds and countdowns, because a story's *now* is the reader's wall
   clock and a timer's is monotonic. A permission kind is `PermissionKind`
   over the C ABI's `uint32_t`, open for appending: a kind this binding does
-  not name arrives as its number. The 1.6 header names `RipplePermissionKind` in
-  its comments without defining it, so the two numbers are copied from the
-  engine's source; a swap fails `Senses` and every fixture that permits.
+  not name arrives as its number. Its members are the generated
+  `RipplePermissionKind`'s, so the numbers come from the header rather than
+  being spelled here; a swap fails `Senses` and every fixture that permits.
 - **New fields arrive as `init` properties** where a positional record
   already had a constructor — `PromptField`'s `Label`, `Placeholder`,
   `Optional` and `Options` — so a 1.5 caller's `new PromptField(name, type,
