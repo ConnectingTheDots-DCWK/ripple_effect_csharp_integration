@@ -74,15 +74,62 @@ namespace RippleFx.Engine.Tests
         {
             using var campaign = Campaign.OpenDirectory(Fixtures.Bundle("the-hesitation"));
             ulong now = 0;
+            var fired = new List<CallbackEvent>();
             using var player = new Player(
-                Session.Create(campaign, new SessionConfig { Board = campaign.Manifest.Entries[0] }),
-                new PlayerHandlers { Countdowns = false },
+                Session.Create(campaign, new SessionConfig { Board = campaign.Manifest.Entries[0], Options = Conformance.FixtureOptions() }),
+                new PlayerHandlers { Countdowns = false, OnError = error => Assert.Fail(error.ToString()) },
                 () => now);
+            player.OnAnyCallback(fired.Add);
             player.Start();
+            Assert.That(player.CountdownBegins, Is.Null);
             now = 60_000;
             player.Update();
+            player.Update();
+            Assert.That(fired, Is.Empty, "neither begun nor run out");
+            Assert.That(player.CountdownExpires, Is.Null);
             Assert.That(((Effect.Show)player.Turn!).Passage.Node, Is.EqualTo("narration_2"));
-            Assert.That(player.CountdownBegins, Is.Null);
+        }
+
+        // A verb that moves nothing leaves both waits owed: a permit once the
+        // story has begun (host API §7a: at any time), a refused choice, a
+        // language change on a hold. Each answers no batch, or throws, so
+        // nothing would ever set the wait again.
+        [Test]
+        public void AVerbThatMovesNothingKeepsTheWaits()
+        {
+            using var campaign = Campaign.OpenDirectory(Fixtures.Bundle("the-hesitation"));
+            ulong now = 1000;
+            using var player = new Player(
+                Session.Create(campaign, new SessionConfig { Board = campaign.Manifest.Entries[0] }),
+                new PlayerHandlers { OnError = error => Assert.Fail(error.ToString()) },
+                () => now);
+            player.Start();
+            Assert.That(player.CountdownBegins, Is.EqualTo(3000));
+            player.Permit(PermissionKind.Location, false);
+            Assert.That(player.CountdownBegins, Is.EqualTo(3000), "a permit mid-story");
+            Assert.Throws<HostException>(() => player.Choose(99));
+            Assert.That(player.CountdownBegins, Is.EqualTo(3000), "a refused choice");
+            now = 3000;
+            player.Update();
+            Assert.That(player.CountdownExpires, Is.EqualTo(8000));
+            player.Permit(PermissionKind.DateTime, true);
+            Assert.That(player.CountdownExpires, Is.EqualTo(8000), "a permit while it runs");
+
+            using var hourglass = Campaign.OpenDirectory(Fixtures.Bundle("the-hourglass"));
+            now = 1000;
+            using var fuse = new Player(
+                Session.Create(hourglass, new SessionConfig { Board = hourglass.Manifest.Entries[0] }),
+                new PlayerHandlers { OnError = error => Assert.Fail(error.ToString()) },
+                () => now);
+            fuse.Start();
+            fuse.Choose(0);
+            Assert.That(fuse.Turn, Is.EqualTo(new Effect.Hold(1500)));
+            fuse.Permit(PermissionKind.Location, true);
+            fuse.SetLocale("en-US");
+            Assert.That(fuse.HoldDue, Is.EqualTo(2500));
+            now = 2500;
+            fuse.Update();
+            Assert.That(((Effect.Show)fuse.Turn!).Passage.Node, Is.EqualTo("narration_4"));
         }
 
         [Test]

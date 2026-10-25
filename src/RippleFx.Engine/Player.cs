@@ -148,9 +148,8 @@ namespace RippleFx.Engine
             {
                 throw Reentrant(nameof(Pause));
             }
-            HoldDue = null;
-            ForgetCountdown();
             var paused = Session.Pause();
+            Moved(paused.Effects, CountdownStep.Forget);
             Dispatch(paused.Effects);
             return paused.Save;
         }
@@ -200,7 +199,9 @@ namespace RippleFx.Engine
 
         // What a verb does to a countdown under way: any verb that moves the
         // story drops it; a language change keeps it, the passage being the
-        // same visit; a countdown begun by hand is run out on the clock.
+        // same visit; a countdown begun by hand is run out on the clock. A
+        // verb that answers nothing moved nothing, and one the engine refused
+        // left the story where it was: either way, both waits stand.
         private enum CountdownStep
         {
             Forget,
@@ -218,13 +219,9 @@ namespace RippleFx.Engine
             {
                 return;
             }
-            HoldDue = null;
-            if (countdown == CountdownStep.Forget)
-            {
-                ForgetCountdown();
-            }
             Tell();
             var effects = run();
+            Moved(effects, countdown);
             if (countdown == CountdownStep.Begin && CountdownExpires == null && handlers.Countdowns && Timer() is { } timer)
             {
                 CountdownBegins = null;
@@ -257,6 +254,22 @@ namespace RippleFx.Engine
             if (handlers.Now is { } now)
             {
                 Session.SetNow(now());
+            }
+        }
+
+        // A permit after the story has begun, a language change on a hold, a
+        // second start: the engine answers nothing, and the hold and the
+        // countdown it was waiting on are still owed.
+        private void Moved(IReadOnlyList<Effect> effects, CountdownStep countdown)
+        {
+            if (effects.Count == 0)
+            {
+                return;
+            }
+            HoldDue = null;
+            if (countdown == CountdownStep.Forget)
+            {
+                ForgetCountdown();
             }
         }
 

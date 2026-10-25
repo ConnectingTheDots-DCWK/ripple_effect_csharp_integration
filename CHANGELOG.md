@@ -18,7 +18,8 @@ engine tree until engine 1.6.0 is released and pinned.
   `PermissionKinds`.
 - **A passage may count down.** `Passage.Timer`, a `ChoiceTimer`, and
   `Session.BeginCountdown` and `Expire`. The `Player` runs it on its clock,
-  keeps it across a language change and drops it on any other verb; with
+  keeps it across a language change and drops it on any verb that moves the
+  story — never on one that answers nothing or is refused; with
   `PlayerHandlers.Countdowns = false` it runs none, for a reader who asked
   for no time limits. `PlayerHandlers.Now` hands the player's wall clock to
   `SetNow` before every verb.

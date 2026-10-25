@@ -82,12 +82,14 @@ the player's clock (`Countdowns`), carries a whole position fix, a
 stand-in, the refusals and a form's labels in two languages (`Senses`),
 compares .NET's layout of all 75 structs with clang's, holds a disposed
 handle to refusing a call, and holds the iOS native-symbol list to the
-P/Invokes of Native.g.cs (`IosSymbols`). Ninety-eight tests in all. **A test
+P/Invokes of Native.g.cs (`IosSymbols`). Ninety-nine tests in all. **A test
 has to be able to fail**, and each of these was seen red: a passage's title
 written into its text (every fixture, both hosts); a field's `optional`
 dropped (the-chosen, both hosts); the driver's latency offset removed (the
 late-voice test); a countdown measured from `Update` rather than from when
-it was due, and not kept across `SetLocale` (`Countdowns`); a fix's latitude
+it was due, not kept across `SetLocale`, dropped by a permit once the
+story has begun, by a refused `Choose` or by a language change on a hold,
+and begun with `Countdowns` off (`Countdowns`); a fix's latitude
 and longitude swapped, and the player's `Now` never handed over (`Senses`);
 two fields of a struct swapped (the layout test, naming
 `offsetof(RippleEntry, id)`); the disposed guard removed from `Session`; a
@@ -142,7 +144,11 @@ out of a package (`check-android.sh`), and the iOS ones left out
   two waits on the host's clock (`campaign-host-api.md` §4b), so `Player`
   keeps them beside the hold: measured from when the begin was due rather
   than from when `Update` came round, kept across `SetLocale` — the same
-  visit — and dropped by any verb that moves the story.
+  visit — and dropped by any verb that moves the story. A verb that answers
+  an empty batch moved nothing, and one the engine refused left the story
+  where it was, so both keep the hold and the countdown: a permit after the
+  story has begun is the case that hangs a story otherwise, since nothing
+  would set the hold again.
   `PlayerHandlers.Countdowns = false` runs none, which is the conformance
   driver's setting (a fixture's moves say when) and a reader's who asked for
   no time limits.
@@ -152,7 +158,9 @@ out of a package (`check-android.sh`), and the iOS ones left out
   times holds and countdowns, because a story's *now* is the reader's wall
   clock and a timer's is monotonic. A permission kind is `PermissionKind`
   over the C ABI's `uint32_t`, open for appending: a kind this binding does
-  not name arrives as its number.
+  not name arrives as its number. The 1.6 header names `RipplePermissionKind` in
+  its comments without defining it, so the two numbers are copied from the
+  engine's source; a swap fails `Senses` and every fixture that permits.
 - **New fields arrive as `init` properties** where a positional record
   already had a constructor — `PromptField`'s `Label`, `Placeholder`,
   `Optional` and `Options` — so a 1.5 caller's `new PromptField(name, type,
