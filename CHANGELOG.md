@@ -3,10 +3,9 @@
 `MAJOR.MINOR` is the Ripple Effect engine contract these bindings bind, and
 `PATCH` is their own. Each version pins one engine release, named here.
 
-## 1.6.0 — unreleased
+## 1.6.0
 
-Binds contract 1.6, Grammar Lich, built and tested against the frozen
-engine tree until engine 1.6.0 is released and pinned.
+Binds contract 1.6, Grammar Lich, pinning engine 1.6.0.
 
 - **A story may read the clock and the reader's position, and asks first.**
   `Manifest.Permissions` lists what it reads; `Effect.Permit`, a Turn before
