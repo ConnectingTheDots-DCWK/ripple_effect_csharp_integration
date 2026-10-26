@@ -21,6 +21,10 @@ namespace RippleFx.Engine
         Stopped = 13,
         NothingAsked = 14,
         UnknownLocale = 15,
+        NotPermitted = 16,
+        StandIn = 17,
+        NoCountdown = 18,
+        CountdownNotBegun = 19,
         BoardGone = 20,
         NodeGone = 21,
         InvalidArgument = -1,
@@ -58,7 +62,11 @@ namespace RippleFx.Engine
         /// <summary><see cref="Code.NoSuchChoice"/>: the index taken.</summary>
         public uint Chosen { get; init; }
 
-        /// <summary>The choice, locale, board or node a host or resume error is about.</summary>
+        /// <summary>
+        /// The choice, locale, board or node a host or resume error is about —
+        /// and for <see cref="Code.NotPermitted"/> and <see cref="Code.StandIn"/>,
+        /// the kind's wire name.
+        /// </summary>
         public string Subject { get; init; } = "";
 
         /// <summary><see cref="Code.NodeGone"/>: the node.</summary>
@@ -107,7 +115,8 @@ namespace RippleFx.Engine
             Code.BundleFormat or Code.BundleVersion => new BundleException(failure),
             Code.NeedsPython => new NeedsPythonException(failure),
             Code.WrongTurn or Code.NoSuchChoice or Code.ChoiceSpent or Code.Stopped
-                or Code.NothingAsked or Code.UnknownLocale => new HostException(failure),
+                or Code.NothingAsked or Code.UnknownLocale or Code.NotPermitted or Code.StandIn
+                or Code.NoCountdown or Code.CountdownNotBegun => new HostException(failure),
             Code.BoardGone or Code.NodeGone => new ResumeException(failure),
             Code.Trap => new EngineTrapException(failure),
             Code.Reentrant => new ReentrantVerbException(failure),
@@ -127,7 +136,7 @@ namespace RippleFx.Engine
         public NeedsPythonException(Failure failure) : base(failure) { }
     }
 
-    /// <summary>A verb the story was not asking for — host API §11.</summary>
+    /// <summary>A verb the story was not asking for, or a reading it will not take — host API §11.</summary>
     public sealed class HostException : RippleException
     {
         public HostException(Failure failure) : base(failure) { }

@@ -5,7 +5,7 @@ Wwise, Unity's or Godot's audio, or a game engine's own mixer. **This
 repository ships no speaker.** The audio APIs a C# host might use have
 nothing in common, and every one of them is a dependency worth more than the
 engine. What ships is the seam: the engine's scheduler decides every voice,
-and a speaker of yours plays them. It binds **Ripple Effect contract 1.5**,
+and a speaker of yours plays them. It binds **Ripple Effect contract 1.6**,
 and transcribes the engine's `host-audio-system.md` §9, the source of truth;
 it is the C/C++ binding's contract, word for word where the two can be.
 

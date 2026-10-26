@@ -21,7 +21,7 @@ and a Unity package will be built on this one.
 | `engine.json`, `engine-signing.pub`, `scripts/pin-engine.sh` | The pin and its trust anchor, the same files as the C/C++ binding's. |
 | `scripts/generate.sh` | The interop and `tests/RippleFx.Engine.Tests/layout.json`, from the pinned header. |
 | `scripts/check-packages.sh`, `scripts/check-android.sh`, `scripts/check-ios.sh` | The packages as a consumer meets them, from a local feed: a console, an Android APK, and an iOS app (device and simulator, the static engine linked in). |
-| `tests/RippleFx.Engine.Tests/` | NUnit: conformance through `Session` and `Player`, the driver, values, the layout. |
+| `tests/RippleFx.Engine.Tests/` | NUnit: conformance through `Session` and `Player`, the driver, a countdown on the player's clock, what a story reads of the world, values, the layout. |
 | `examples/ConsolePlayer/` | A terminal player over any bundle folder. |
 | `docs/speaker.md`, `docs/consuming.md` | The speaker contract, and how a project takes the packages. |
 
@@ -69,21 +69,33 @@ bash scripts/check-ios.sh out/packages out/engine/conformance/fixtures/the-choir
 ```
 
 The suite plays every conformance fixture of the pinned release through
-`Session` and through `Player`, in the configured variant: 24 with Python,
-21 without, skipping 3 — counts asserted, and the engine asked, not the
-configuration. It checks nothing the engine handed out is left over, holds
-the driver to the scheduler on a recording speaker and a numeric clock,
-compares .NET's layout of all 68 structs with clang's, holds a disposed
+`Session` and through `Player`, in the configured variant: 33 with Python,
+27 without, skipping 6 — counts asserted, and the engine asked, not the
+configuration. The driver does what the engine's own reference driver
+(`ripple-runtime/src/conformance/runner.rs`) does with what `FORMAT.md` has
+not caught up with yet: the input's `now`, `permit` and `standIns`, told
+before `Start` and again after a resume; the `countdown`, `expire` and
+`permit` moves; a passage's `timer`, and the `permit` and `notice` events.
+It checks nothing the engine handed out is left over, holds the driver to
+the scheduler on a recording speaker and a numeric clock, runs a countdown on
+the player's clock (`Countdowns`), carries a whole position fix, a
+stand-in, the refusals and a form's labels in two languages (`Senses`),
+compares .NET's layout of all 75 structs with clang's, holds a disposed
 handle to refusing a call, and holds the iOS native-symbol list to the
-P/Invokes of Native.g.cs (`IosSymbols`). Eighty-four tests in all. **A test
+P/Invokes of Native.g.cs (`IosSymbols`). Ninety-nine tests in all. **A test
 has to be able to fail**, and each of these was seen red: a passage's title
-written into its text (every fixture, both hosts); the driver's latency
-offset removed (the late-voice test); two fields of a struct swapped (the
-layout test, naming `offsetof(RippleEntry, id)`); the disposed guard removed
-from `Session`; a symbol dropped from the iOS list (`IosSymbols`); the
-Android libraries left out of a package (`check-android.sh`), and the iOS
-ones left out (`check-ios.sh`, where the device link fails naming the
-missing archive).
+written into its text (every fixture, both hosts); a field's `optional`
+dropped (the-chosen, both hosts); the driver's latency offset removed (the
+late-voice test); a countdown measured from `Update` rather than from when
+it was due, not kept across `SetLocale`, dropped by a permit once the
+story has begun, by a refused `Choose` or by a language change on a hold,
+and begun with `Countdowns` off (`Countdowns`); a fix's latitude
+and longitude swapped, and the player's `Now` never handed over (`Senses`);
+two fields of a struct swapped (the layout test, naming
+`offsetof(RippleEntry, id)`); the disposed guard removed from `Session`; a
+symbol dropped from the iOS list (`IosSymbols`); the Android libraries left
+out of a package (`check-android.sh`), and the iOS ones left out
+(`check-ios.sh`, where the device link fails naming the missing archive).
 
 ## The decisions
 
@@ -128,6 +140,33 @@ missing archive).
 - **The driver and the player own no clock and no thread**, as in C++: a
   `Func<ulong>` of milliseconds, `Clocks.Steady()` unless a test passes a
   number.
+- **The player runs a countdown; the session never does.** A countdown is
+  two waits on the host's clock (`campaign-host-api.md` §4b), so `Player`
+  keeps them beside the hold: measured from when the begin was due rather
+  than from when `Update` came round, kept across `SetLocale` — the same
+  visit — and dropped by any verb that moves the story. A verb that answers
+  an empty batch moved nothing, and one the engine refused left the story
+  where it was, so both keep the hold and the countdown: a permit after the
+  story has begun is the case that hangs a story otherwise, since nothing
+  would set the hold again.
+  `PlayerHandlers.Countdowns = false` runs none, which is the conformance
+  driver's setting (a fixture's moves say when) and a reader's who asked for
+  no time limits.
+- **What a story reads of the world is pushed, and the wall clock is a
+  handler.** `PlayerHandlers.Now` is a `Func<Moment?>` the player hands to
+  `SetNow` before every verb; the millisecond clock above stays the one that
+  times holds and countdowns, because a story's *now* is the reader's wall
+  clock and a timer's is monotonic. A permission kind is `PermissionKind`
+  over the C ABI's `uint32_t`, open for appending: a kind this binding does
+  not name arrives as its number. Its members are the generated
+  `RipplePermissionKind`'s, so the numbers come from the header rather than
+  being spelled here; a swap fails `Senses` and every fixture that permits.
+- **New fields arrive as `init` properties** where a positional record
+  already had a constructor — `PromptField`'s `Label`, `Placeholder`,
+  `Optional` and `Options` — so a 1.5 caller's `new PromptField(name, type,
+  default)` still compiles. `Effect.Notice` and `Effect.Permit` are flat, as
+  `Ended` and `Failed` are: a nested `Notice` record could not hold a
+  property named `Notice`.
 - **Publishing is nuget.org's Trusted Publishing**: the release job's OIDC
   token is exchanged by `NuGet/login` for a key that lives an hour; no key is
   stored. The engines are pushed before the bindings.

@@ -182,6 +182,104 @@ namespace RippleFx.Engine
         /// <summary>Answers a wait, once the host's clock says it is over.</summary>
         public IReadOnlyList<Effect> Elapsed() => Batch((o, e) => Native.ripple_session_elapsed(Raw, o, e));
 
+        /// <summary>
+        /// The host's clock says the shown passage's countdown begins, its
+        /// <see cref="ChoiceTimer.AfterMs"/> after it was shown. Moves nothing:
+        /// the effects are only the callbacks an author aimed at it. A second
+        /// call, or one after the reader chose, answers none.
+        /// </summary>
+        /// <exception cref="HostException"><see cref="Code.NoCountdown"/> on a passage with none.</exception>
+        public IReadOnlyList<Effect> BeginCountdown() => Batch((o, e) => Native.ripple_session_begin_countdown(Raw, o, e));
+
+        /// <summary>
+        /// The host's clock says the countdown ran out: the passage's
+        /// <see cref="ChoiceTimer.Default"/> is taken as a reader would take it.
+        /// </summary>
+        /// <exception cref="HostException">
+        /// <see cref="Code.CountdownNotBegun"/> before <see cref="BeginCountdown"/>;
+        /// <see cref="Code.NoCountdown"/> on a passage with none.
+        /// </exception>
+        public IReadOnlyList<Effect> Expire() => Batch((o, e) => Native.ripple_session_expire(Raw, o, e));
+
+        /// <summary>
+        /// The reader's answer for one kind, at any time — before
+        /// <see cref="Start"/> included, when it answers nothing. On a
+        /// <see cref="Effect.Permit"/> turn, the answer to the last kind
+        /// unanswered begins the story. Answers are not part of a save: a
+        /// resumed session is told again.
+        /// </summary>
+        public IReadOnlyList<Effect> Permit(PermissionKind kind, bool granted) =>
+            Batch((o, e) => Native.ripple_session_permit(Raw, (uint)kind, granted ? (byte)1 : (byte)0, o, e));
+
+        /// <summary>
+        /// What time it is, from the host — null for no clock. Called before
+        /// every verb that can step, by a host that granted
+        /// <see cref="PermissionKind.DateTime"/>; within one verb time does not move.
+        /// </summary>
+        public void SetNow(Moment? now)
+        {
+            RippleError* error = null;
+            if (now == null)
+            {
+                Check.Ok(Native.ripple_session_set_now(Raw, null, &error), error);
+            }
+            else
+            {
+                var raw = new RippleMoment { utc_ms = now.UtcMs, offset_minutes = now.OffsetMinutes };
+                Check.Ok(Native.ripple_session_set_now(Raw, &raw, &error), error);
+            }
+            GC.KeepAlive(this);
+        }
+
+        /// <summary>
+        /// The host's last position fix — null for none. A fix handed in before
+        /// the reader answered is kept, and read only if the answer is yes.
+        /// </summary>
+        /// <exception cref="HostException"><see cref="Code.NotPermitted"/> once location is denied.</exception>
+        public void SetPosition(Position? position)
+        {
+            RippleError* error = null;
+            if (position == null)
+            {
+                Check.Ok(Native.ripple_session_set_position(Raw, null, &error), error);
+                GC.KeepAlive(this);
+                return;
+            }
+            using var scratch = new Scratch();
+            var raw = new RipplePosition
+            {
+                label = scratch.Str(position.Label),
+                latitude = Optional(position.Latitude),
+                longitude = Optional(position.Longitude),
+                accuracy = Optional(position.Accuracy),
+            };
+            if (position.When is { } when)
+            {
+                raw.when = scratch.Array<RippleMoment>(1);
+                raw.when->utc_ms = when.UtcMs;
+                raw.when->offset_minutes = when.OffsetMinutes;
+            }
+            Check.Ok(Native.ripple_session_set_position(Raw, &raw, &error), error);
+            GC.KeepAlive(this);
+        }
+
+        /// <summary>
+        /// The reader's stand-in for one kind, as they typed it, answered
+        /// whenever the real value is missing — null takes it away. A time is
+        /// ISO 8601 (<c>2026-10-19T18:30:00+02:00</c>, or a date alone for its
+        /// midnight), read at <paramref name="localOffsetMinutes"/> when typed
+        /// without an offset: pass the reader's own for that date. A position is
+        /// <c>"lat, lon"</c> in decimal degrees, or anything else as a place's name.
+        /// </summary>
+        /// <exception cref="HostException"><see cref="Code.StandIn"/>, saying why, for one that does not read.</exception>
+        public void SetStandIn(PermissionKind kind, string? typed, int localOffsetMinutes)
+        {
+            using var scratch = new Scratch();
+            RippleError* error = null;
+            Check.Ok(Native.ripple_session_set_stand_in(Raw, (uint)kind, scratch.Str(typed), localOffsetMinutes, &error), error);
+            GC.KeepAlive(this);
+        }
+
         public IReadOnlyList<Effect> SetLocale(string locale)
         {
             using var scratch = new Scratch();
@@ -329,6 +427,9 @@ namespace RippleFx.Engine
         }
 
         public void Dispose() => handle.Dispose();
+
+        private static RippleOptionalF64 Optional(double? value) =>
+            value is { } present ? new RippleOptionalF64 { present = 1, value = present } : default;
 
         private IReadOnlyList<Effect> Batch(Call<RippleEffects> call) =>
             Owned<RippleEffects, IReadOnlyList<Effect>>(call, b => From.Effects(b->items, b->count));

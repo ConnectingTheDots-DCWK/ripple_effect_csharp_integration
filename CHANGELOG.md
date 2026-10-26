@@ -3,6 +3,37 @@
 `MAJOR.MINOR` is the Ripple Effect engine contract these bindings bind, and
 `PATCH` is their own. Each version pins one engine release, named here.
 
+## 1.6.0
+
+Binds contract 1.6, Grammar Lich, pinning engine 1.6.0.
+
+- **A story may read the clock and the reader's position, and asks first.**
+  `Manifest.Permissions` lists what it reads; `Effect.Permit`, a Turn before
+  the story begins, asks; `Session.Permit(kind, granted)` answers, at any
+  time and before `Start` included. The host hands the readings in —
+  `SetNow` a `Moment`, `SetPosition` a `Position` — and a reader's stand-in
+  goes in with `SetStandIn`. `Effect.Notice` says, once, that a read got a
+  stand-in, a refusal or nothing. `PermissionKind`, with its wire names in
+  `PermissionKinds`.
+- **A passage may count down.** `Passage.Timer`, a `ChoiceTimer`, and
+  `Session.BeginCountdown` and `Expire`. The `Player` runs it on its clock,
+  keeps it across a language change and drops it on any verb that moves the
+  story — never on one that answers nothing or is refused; with
+  `PlayerHandlers.Countdowns = false` it runs none, for a reader who asked
+  for no time limits. `PlayerHandlers.Now` hands the player's wall clock to
+  `SetNow` before every verb.
+- **A form speaks the reader's language.** `PromptField.Label` and
+  `Placeholder` in the current language, `Optional` for a field that may be
+  left empty, and `Options`, each a `PromptOption`, answered by `Id`.
+- `Code.NotPermitted`, `StandIn`, `NoCountdown` and `CountdownNotBegun`,
+  each a `HostException`.
+- Every one of the thirty-three conformance fixtures plays through
+  `Session` and `Player`, the nine new ones among them.
+- `examples/ConsolePlayer` reads the keyboard on a thread of its own, so a
+  countdown runs out while the reader thinks; it asks before a story reads
+  the clock or the reader's position, and fills a form by its labels, with a
+  menu for its options.
+
 ## 1.5.0
 
 - **The C# bindings**, pinning engine 1.5.3: `RippleFx.Engine` on nuget.org,

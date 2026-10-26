@@ -85,6 +85,15 @@
       "available": 32
     }
   },
+  "RippleChoiceTimer": {
+    "size": 24,
+    "fields": {
+      "after_ms": 0,
+      "timeout_ms": 8,
+      "visible": 16,
+      "default_choice": 20
+    }
+  },
   "RippleConsoleResult": {
     "size": 56,
     "fields": {
@@ -153,7 +162,9 @@
       "ask": 0,
       "hold_ms": 0,
       "ended": 0,
-      "failed": 0
+      "failed": 0,
+      "permit": 0,
+      "notice": 0
     }
   },
   "RippleEffects": {
@@ -300,7 +311,7 @@
     }
   },
   "RippleManifest": {
-    "size": 280,
+    "size": 296,
     "fields": {
       "format": 0,
       "generator": 8,
@@ -325,7 +336,9 @@
       "cvars": 248,
       "cvar_count": 256,
       "needs": 264,
-      "need_count": 272
+      "need_count": 272,
+      "permissions": 280,
+      "permission_count": 288
     }
   },
   "RippleMediaLink": {
@@ -343,6 +356,13 @@
       "machine_count": 24
     }
   },
+  "RippleMoment": {
+    "size": 16,
+    "fields": {
+      "utc_ms": 0,
+      "offset_minutes": 8
+    }
+  },
   "RippleNode": {
     "size": 112,
     "fields": {
@@ -355,6 +375,22 @@
       "output_count": 72,
       "data": 80,
       "metadata": 96
+    }
+  },
+  "RippleNotice": {
+    "size": 56,
+    "fields": {
+      "code": 0,
+      "kind": 16,
+      "node": 24,
+      "message": 40
+    }
+  },
+  "RippleOptionalF64": {
+    "size": 16,
+    "fields": {
+      "present": 0,
+      "value": 8
     }
   },
   "RippleOptionalI64": {
@@ -379,7 +415,7 @@
     }
   },
   "RipplePassage": {
-    "size": 152,
+    "size": 160,
     "fields": {
       "node": 0,
       "title": 16,
@@ -395,7 +431,8 @@
       "media_count": 112,
       "untranslated": 120,
       "soundscape": 136,
-      "silence": 144
+      "silence": 144,
+      "timer": 152
     }
   },
   "RipplePaused": {
@@ -406,6 +443,13 @@
       "effect_count": 24
     }
   },
+  "RipplePermit": {
+    "size": 16,
+    "fields": {
+      "kinds": 0,
+      "kind_count": 8
+    }
+  },
   "RipplePort": {
     "size": 40,
     "fields": {
@@ -413,6 +457,16 @@
       "kind": 16,
       "edges": 24,
       "edge_count": 32
+    }
+  },
+  "RipplePosition": {
+    "size": 72,
+    "fields": {
+      "label": 0,
+      "latitude": 16,
+      "longitude": 32,
+      "accuracy": 48,
+      "when": 64
     }
   },
   "RippleProject": {
@@ -436,11 +490,24 @@
     }
   },
   "RipplePromptField": {
-    "size": 48,
+    "size": 104,
     "fields": {
       "name": 0,
       "type_name": 16,
-      "default_value": 32
+      "default_value": 32,
+      "label": 48,
+      "placeholder": 64,
+      "optional": 80,
+      "options": 88,
+      "option_count": 96
+    }
+  },
+  "RipplePromptOption": {
+    "size": 48,
+    "fields": {
+      "id": 0,
+      "label": 16,
+      "value": 32
     }
   },
   "RipplePythonFailure": {

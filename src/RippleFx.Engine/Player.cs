@@ -19,12 +19,29 @@ namespace RippleFx.Engine
 
         /// <summary>Where the story's sound goes; without one, nothing is heard.</summary>
         public SoundscapeDriver? Audio { get; init; }
+
+        /// <summary>
+        /// Whether the player runs a passage's countdown on its clock — begins
+        /// it and expires it from <see cref="Player.Update"/>. True unless a
+        /// reader asked for no time limits (WCAG 2.2.1), or the host runs them
+        /// itself with <see cref="Player.BeginCountdown"/> and <see cref="Player.Expire"/>.
+        /// </summary>
+        public bool Countdowns { get; init; } = true;
+
+        /// <summary>
+        /// What time it is for the story, handed to <see cref="Session.SetNow"/>
+        /// before every verb the player makes or is asked for — for a host
+        /// that granted <see cref="PermissionKind.DateTime"/>. Without one, the
+        /// story has no clock unless the host sets it on the session.
+        /// </summary>
+        public Func<Moment?>? Now { get; init; }
     }
 
     /// <summary>
     /// The loop over a session, written once. It delivers every effect in
     /// order, keeps the Turn the last one named, answers a hold from its clock
-    /// when <see cref="Update"/> finds it due, applies the sound to the driver,
+    /// when <see cref="Update"/> finds it due, runs a passage's countdown on
+    /// the same clock (<c>campaign-host-api.md</c> §4b), applies the sound to the driver,
     /// and is the table the author's named callbacks are dispatched through
     /// (<c>campaign-host-api.md</c> §5b). A verb from inside a handler is
     /// refused: the rest of the batch would arrive after the new one.
@@ -61,6 +78,19 @@ namespace RippleFx.Engine
         public ulong? HoldDue { get; private set; }
 
         /// <summary>
+        /// When the shown passage's countdown begins, by the player's clock;
+        /// null when it has begun, or there is none to run.
+        /// </summary>
+        public ulong? CountdownBegins { get; private set; }
+
+        /// <summary>
+        /// When the countdown runs out, by the player's clock, once it has
+        /// begun; null otherwise. A host drawing a visible
+        /// <see cref="ChoiceTimer"/> counts down to this.
+        /// </summary>
+        public ulong? CountdownExpires { get; private set; }
+
+        /// <summary>
         /// How many callbacks fired with nothing registered under their name —
         /// not a failure: the author and the host declare their halves apart.
         /// </summary>
@@ -88,7 +118,21 @@ namespace RippleFx.Engine
 
         public void Answer(IEnumerable<KeyValuePair<string, Value>>? fields) => Verb(nameof(Answer), () => Session.Answer(fields));
 
-        public void SetLocale(string locale) => Verb(nameof(SetLocale), () => Session.SetLocale(locale));
+        /// <summary>The reader's answer for one kind; the answer to the last one asked begins the story.</summary>
+        public void Permit(PermissionKind kind, bool granted) => Verb(nameof(Permit), () => Session.Permit(kind, granted));
+
+        /// <summary>
+        /// Begins the shown passage's countdown now, for a host that runs
+        /// countdowns itself; with <see cref="PlayerHandlers.Countdowns"/> on,
+        /// the player then runs it out on its clock.
+        /// </summary>
+        public void BeginCountdown() => Verb(nameof(BeginCountdown), () => Session.BeginCountdown(), CountdownStep.Begin);
+
+        /// <summary>Runs the shown passage's countdown out now: its default is taken.</summary>
+        public void Expire() => Verb(nameof(Expire), () => Session.Expire());
+
+        /// <summary>Reads on in another language. A countdown under way goes on: the passage shown again is the same visit.</summary>
+        public void SetLocale(string locale) => Verb(nameof(SetLocale), () => Session.SetLocale(locale), CountdownStep.Keep);
 
         public void Restart() => Verb(nameof(Restart), () => Session.Restart());
 
@@ -104,37 +148,48 @@ namespace RippleFx.Engine
             {
                 throw Reentrant(nameof(Pause));
             }
-            HoldDue = null;
             var paused = Session.Pause();
+            Moved(paused.Effects, CountdownStep.Forget);
             Dispatch(paused.Effects);
             return paused.Save;
         }
 
-        /// <summary>What the host calls from its loop: answers a hold whose time has come.</summary>
+        /// <summary>
+        /// What the host calls from its loop: answers a hold whose time has
+        /// come, and begins or runs out a countdown whose time has.
+        /// </summary>
         public void Update()
         {
-            if (HoldDue is not { } due || clock() < due || delivering)
+            if (delivering || disposed)
             {
                 return;
             }
-            HoldDue = null;
-            IReadOnlyList<Effect> next;
-            try
+            var now = clock();
+            if (HoldDue is { } due && now >= due)
             {
-                next = Session.Elapsed();
+                HoldDue = null;
+                Itself(() => Session.Elapsed());
             }
-            catch (RippleException error) when (handlers.OnError != null)
+            else if (CountdownBegins is { } begins && now >= begins)
             {
-                handlers.OnError(error);
-                return;
+                // Measured from when it was due, not from when Update came
+                // round to it, so a slow frame does not lengthen the countdown.
+                CountdownBegins = null;
+                CountdownExpires = begins + Timer()?.TimeoutMs;
+                Itself(() => Session.BeginCountdown());
             }
-            Dispatch(next);
+            else if (CountdownExpires is { } expires && now >= expires)
+            {
+                ForgetCountdown();
+                Itself(() => Session.Expire());
+            }
         }
 
         /// <summary>Delivers nothing more, moves the story no further, and disposes the session.</summary>
         public void Dispose()
         {
             HoldDue = null;
+            ForgetCountdown();
             disposed = true;
             Session.Dispose();
         }
@@ -142,7 +197,19 @@ namespace RippleFx.Engine
         private static ReentrantVerbException Reentrant(string verb) => new ReentrantVerbException(new Failure(Code.Reentrant,
             $"{verb}() was called while the player was delivering a batch; call it after the handler returns"));
 
-        private void Verb(string name, Func<IReadOnlyList<Effect>> run)
+        // What a verb does to a countdown under way: any verb that moves the
+        // story drops it; a language change keeps it, the passage being the
+        // same visit; a countdown begun by hand is run out on the clock. A
+        // verb that answers nothing moved nothing, and one the engine refused
+        // left the story where it was: either way, both waits stand.
+        private enum CountdownStep
+        {
+            Forget,
+            Keep,
+            Begin,
+        }
+
+        private void Verb(string name, Func<IReadOnlyList<Effect>> run, CountdownStep countdown = CountdownStep.Forget)
         {
             if (delivering)
             {
@@ -152,8 +219,66 @@ namespace RippleFx.Engine
             {
                 return;
             }
+            Tell();
+            var effects = run();
+            Moved(effects, countdown);
+            if (countdown == CountdownStep.Begin && CountdownExpires == null && handlers.Countdowns && Timer() is { } timer)
+            {
+                CountdownBegins = null;
+                CountdownExpires = clock() + timer.TimeoutMs;
+            }
+            Dispatch(effects);
+        }
+
+        // A verb the player makes by itself, on its clock: a failure goes to
+        // OnError when there is one, and is thrown from Update otherwise.
+        private void Itself(Func<IReadOnlyList<Effect>> run)
+        {
+            IReadOnlyList<Effect> next;
+            try
+            {
+                Tell();
+                next = run();
+            }
+            catch (RippleException error) when (handlers.OnError != null)
+            {
+                handlers.OnError(error);
+                return;
+            }
+            Dispatch(next);
+        }
+
+        // The story's clock, before every verb that can step.
+        private void Tell()
+        {
+            if (handlers.Now is { } now)
+            {
+                Session.SetNow(now());
+            }
+        }
+
+        // A permit after the story has begun, a language change on a hold, a
+        // second start: the engine answers nothing, and the hold and the
+        // countdown it was waiting on are still owed.
+        private void Moved(IReadOnlyList<Effect> effects, CountdownStep countdown)
+        {
+            if (effects.Count == 0)
+            {
+                return;
+            }
             HoldDue = null;
-            Dispatch(run());
+            if (countdown == CountdownStep.Forget)
+            {
+                ForgetCountdown();
+            }
+        }
+
+        private ChoiceTimer? Timer() => (Turn as Effect.Show)?.Passage.Timer;
+
+        private void ForgetCountdown()
+        {
+            CountdownBegins = null;
+            CountdownExpires = null;
         }
 
         // A handler's error is the host's bug and not the story's: reported, and
@@ -207,9 +332,20 @@ namespace RippleFx.Engine
             {
                 delivering = false;
             }
-            if (effects.Count > 0 && !disposed && effects[effects.Count - 1] is Effect.Hold hold)
+            if (effects.Count == 0 || disposed)
             {
-                HoldDue = clock() + hold.Ms;
+                return;
+            }
+            switch (effects[effects.Count - 1])
+            {
+                case Effect.Hold hold:
+                    HoldDue = clock() + hold.Ms;
+                    break;
+                case Effect.Show { Passage: { Timer: { } timer } } when handlers.Countdowns && CountdownBegins == null && CountdownExpires == null:
+                    // A new visit to a timed passage; a language change's
+                    // re-render kept the countdown it had.
+                    CountdownBegins = clock() + timer.AfterMs;
+                    break;
             }
         }
 

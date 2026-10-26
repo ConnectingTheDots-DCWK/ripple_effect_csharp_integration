@@ -80,6 +80,7 @@
     <ReferenceNativeSymbol Include="ripple_save_format"><SymbolType>Function</SymbolType></ReferenceNativeSymbol>
     <ReferenceNativeSymbol Include="ripple_session_ambience"><SymbolType>Function</SymbolType></ReferenceNativeSymbol>
     <ReferenceNativeSymbol Include="ripple_session_answer"><SymbolType>Function</SymbolType></ReferenceNativeSymbol>
+    <ReferenceNativeSymbol Include="ripple_session_begin_countdown"><SymbolType>Function</SymbolType></ReferenceNativeSymbol>
     <ReferenceNativeSymbol Include="ripple_session_board"><SymbolType>Function</SymbolType></ReferenceNativeSymbol>
     <ReferenceNativeSymbol Include="ripple_session_checkpoint"><SymbolType>Function</SymbolType></ReferenceNativeSymbol>
     <ReferenceNativeSymbol Include="ripple_session_choose"><SymbolType>Function</SymbolType></ReferenceNativeSymbol>
@@ -91,12 +92,14 @@
     <ReferenceNativeSymbol Include="ripple_session_destroy"><SymbolType>Function</SymbolType></ReferenceNativeSymbol>
     <ReferenceNativeSymbol Include="ripple_session_elapsed"><SymbolType>Function</SymbolType></ReferenceNativeSymbol>
     <ReferenceNativeSymbol Include="ripple_session_entities"><SymbolType>Function</SymbolType></ReferenceNativeSymbol>
+    <ReferenceNativeSymbol Include="ripple_session_expire"><SymbolType>Function</SymbolType></ReferenceNativeSymbol>
     <ReferenceNativeSymbol Include="ripple_session_generator"><SymbolType>Function</SymbolType></ReferenceNativeSymbol>
     <ReferenceNativeSymbol Include="ripple_session_guard"><SymbolType>Function</SymbolType></ReferenceNativeSymbol>
     <ReferenceNativeSymbol Include="ripple_session_locale"><SymbolType>Function</SymbolType></ReferenceNativeSymbol>
     <ReferenceNativeSymbol Include="ripple_session_memory"><SymbolType>Function</SymbolType></ReferenceNativeSymbol>
     <ReferenceNativeSymbol Include="ripple_session_options_default"><SymbolType>Function</SymbolType></ReferenceNativeSymbol>
     <ReferenceNativeSymbol Include="ripple_session_pause"><SymbolType>Function</SymbolType></ReferenceNativeSymbol>
+    <ReferenceNativeSymbol Include="ripple_session_permit"><SymbolType>Function</SymbolType></ReferenceNativeSymbol>
     <ReferenceNativeSymbol Include="ripple_session_python_available"><SymbolType>Function</SymbolType></ReferenceNativeSymbol>
     <ReferenceNativeSymbol Include="ripple_session_remove_entity"><SymbolType>Function</SymbolType></ReferenceNativeSymbol>
     <ReferenceNativeSymbol Include="ripple_session_reset_all_cvars"><SymbolType>Function</SymbolType></ReferenceNativeSymbol>
@@ -105,6 +108,9 @@
     <ReferenceNativeSymbol Include="ripple_session_resume"><SymbolType>Function</SymbolType></ReferenceNativeSymbol>
     <ReferenceNativeSymbol Include="ripple_session_set_generator"><SymbolType>Function</SymbolType></ReferenceNativeSymbol>
     <ReferenceNativeSymbol Include="ripple_session_set_locale"><SymbolType>Function</SymbolType></ReferenceNativeSymbol>
+    <ReferenceNativeSymbol Include="ripple_session_set_now"><SymbolType>Function</SymbolType></ReferenceNativeSymbol>
+    <ReferenceNativeSymbol Include="ripple_session_set_position"><SymbolType>Function</SymbolType></ReferenceNativeSymbol>
+    <ReferenceNativeSymbol Include="ripple_session_set_stand_in"><SymbolType>Function</SymbolType></ReferenceNativeSymbol>
     <ReferenceNativeSymbol Include="ripple_session_set_trace"><SymbolType>Function</SymbolType></ReferenceNativeSymbol>
     <ReferenceNativeSymbol Include="ripple_session_set_trace_payloads"><SymbolType>Function</SymbolType></ReferenceNativeSymbol>
     <ReferenceNativeSymbol Include="ripple_session_start"><SymbolType>Function</SymbolType></ReferenceNativeSymbol>
