@@ -149,10 +149,15 @@ jobs:
           dotnet workload install android
           bash scripts/check-android.sh out/packages python
           bash scripts/check-android.sh out/packages no-python
+      # For looking at what a run packed, and nothing downloads it. Three
+      # days, not the default ninety: at 45 MB a run, a fortnight of pushes
+      # filled the organisation's Actions storage and stopped every upload
+      # in every repository, an engine release's among them.
       - uses: actions/upload-artifact@v4
         with:
           name: packages
           path: out/packages/
+          retention-days: 3
 
   ios:
     needs: pin

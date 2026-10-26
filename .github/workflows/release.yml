@@ -55,6 +55,7 @@ jobs:
         with:
           name: notes
           path: notes.md
+          retention-days: 7
 
   test:
     needs: preflight
@@ -108,10 +109,14 @@ jobs:
           dotnet workload install android
           bash scripts/check-android.sh out/packages python
           bash scripts/check-android.sh out/packages no-python
+      # Handed to `release` in this same run; a week is for reading a failed
+      # one. The organisation's Actions storage is shared and small (see
+      # check.yml).
       - uses: actions/upload-artifact@v4
         with:
           name: packages
           path: out/packages/
+          retention-days: 7
 
   release:
     needs: [preflight, test, pack]
