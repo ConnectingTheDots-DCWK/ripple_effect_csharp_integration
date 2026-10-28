@@ -5,7 +5,7 @@
 
 ## 1.6.0
 
-Binds contract 1.6, Grammar Lich, pinning engine 1.6.0.
+Binds contract 1.6, Grammar Lich, pinning engine 1.6.1.
 
 - **A story may read the clock and the reader's position, and asks first.**
   `Manifest.Permissions` lists what it reads; `Effect.Permit`, a Turn before
