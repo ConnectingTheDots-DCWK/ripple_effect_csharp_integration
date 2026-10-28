@@ -161,6 +161,12 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git tag -a "v$VERSION" -m "ripple_effect_csharp_integration $VERSION"
           git push origin "v$VERSION"
+          # From here a failure takes the tag back, and the release if it got
+          # that far: the preflight refuses a version already tagged, so a tag
+          # left behind would stop the run from being dispatched again. The
+          # packages stay on nuget.org, and the next run's --skip-duplicate
+          # passes over them.
+          trap 'gh release delete "v$VERSION" --yes --cleanup-tag || git push --delete origin "v$VERSION"' ERR
           (cd packages && sha256sum ./*.nupkg ./*.snupkg > ../SHA256SUMS)
           flags=()
           case "$VERSION" in *-*) flags+=(--prerelease) ;; esac
