@@ -36,8 +36,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-dotnet@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-dotnet@v6
         with:
           # The SDK is global.json's; 8.0 is the runtime the tests and the
           # tools target (net8.0), which an SDK 10 does not carry.
@@ -54,7 +54,7 @@ jobs:
     outputs:
       pinned: ${{ steps.pin.outputs.pinned }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - id: pin
         name: Is a release pinned?
         run: |
@@ -67,7 +67,7 @@ jobs:
       - name: The pin is a signed release
         if: steps.pin.outputs.pinned == 'true'
         run: bash scripts/pin-engine.sh --verify
-      - uses: actions/setup-dotnet@v4
+      - uses: actions/setup-dotnet@v6
         if: steps.pin.outputs.pinned == 'true'
         with:
           # The SDK is global.json's; 8.0 is the runtime the tests and the
@@ -94,14 +94,14 @@ jobs:
     runs-on: ${{ matrix.os }}
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-dotnet@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-dotnet@v6
         with:
           # The SDK is global.json's; 8.0 is the runtime the tests and the
           # tools target (net8.0), which an SDK 10 does not carry.
           global-json-file: global.json
           dotnet-version: 8.0.x
-      - uses: actions/cache@v4
+      - uses: actions/cache@v6
         with:
           path: out/engine/downloads
           key: engine-${{ runner.os }}-${{ runner.arch }}-${{ matrix.variant }}-${{ hashFiles('engine.json') }}
@@ -122,14 +122,14 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-dotnet@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-dotnet@v6
         with:
           # The SDK is global.json's; 8.0 is the runtime the tests and the
           # tools target (net8.0), which an SDK 10 does not carry.
           global-json-file: global.json
           dotnet-version: 8.0.x
-      - uses: actions/cache@v4
+      - uses: actions/cache@v6
         with:
           path: out/engine/downloads
           key: engine-stage-${{ hashFiles('engine.json') }}
@@ -153,7 +153,7 @@ jobs:
       # days, not the default ninety: at 45 MB a run, a fortnight of pushes
       # filled the organisation's Actions storage and stopped every upload
       # in every repository, an engine release's among them.
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: packages
           path: out/packages/
@@ -169,7 +169,7 @@ jobs:
       matrix:
         variant: [python, no-python]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       # .NET for iOS needs the Xcode its workload was built against, and a
       # hosted runner is often a release behind. When it is, this leg skips
       # with a notice rather than fails — the same shape as the pin job when no
@@ -185,7 +185,7 @@ jobs:
             echo "ready=false" >> "$GITHUB_OUTPUT"
             echo "::notice::Xcode $major on this runner; the .NET 10 iOS workload needs 27. Skipping the iOS build until a hosted runner ships it; scripts/check-ios.sh covers it locally."
           fi
-      - uses: actions/setup-dotnet@v4
+      - uses: actions/setup-dotnet@v6
         if: steps.xcode.outputs.ready == 'true'
         with:
           # The SDK is global.json's; 8.0 is the runtime the tests and the
@@ -199,7 +199,7 @@ jobs:
       - name: The iOS workload
         if: steps.xcode.outputs.ready == 'true'
         run: dotnet workload install ios
-      - uses: actions/cache@v4
+      - uses: actions/cache@v6
         if: steps.xcode.outputs.ready == 'true'
         with:
           path: out/engine/downloads
